@@ -3,231 +3,457 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Social — вход</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Вход | Smart Social</title>
+    
+    <!-- 1. Конфиг (ключи) -->
     <script src="config.js"></script>
+    <!-- 2. Переводы -->
+    <script src="i18n.js"></script>
+    <!-- 3. Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 4. Логика авторизации -->
+    <script src="login.js"></script>
+
     <style>
+        :root {
+            /* Светлая тема — мягкая фиолетовая градация */
+            --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
+            --bg-secondary: #ffffff;
+            --text-primary: #1e1e2f;
+            --text-secondary: #6b6b80;
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --border: #e9d9ff;
+            --shadow: rgba(124, 58, 237, 0.1);
+            --console-bg: #faf5ff;
+            --console-border: #d8b4fe;
+            --console-text: #1e1e2f;
+        }
+
+        [data-theme="dark"] {
+            /* Темная тема — глубокий фиолетовый */
+            --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
+            --bg-secondary: #2a1a3e;
+            --text-primary: #f5f0ff;
+            --text-secondary: #c4b5fd;
+            --accent: #a78bfa;
+            --accent-hover: #c4b5fd;
+            --border: #4c1d95;
+            --shadow: rgba(167, 139, 250, 0.2);
+            --console-bg: #1f1033;
+            --console-border: #6d28d9;
+            --console-text: #e9d9ff;
+        }
+
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+            margin: 0;            padding: 0;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
+
         body {
-            font-family: system-ui, sans-serif;
-            background: #f5f0ff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            color: var(--text-primary);
         }
+
+        /* ===== ВЕРХНИЕ КОНТРОЛЫ (ТЕМА + ЯЗЫК) ===== */
+        .top-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        #langSelect {
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .theme-toggle:hover, #langSelect:hover {            opacity: 0.9;
+        }
+
+        /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
+        .auth-container {
+            max-width: 420px;
+            width: 100%;
+        }
+
         .auth-box {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 24px;
-            padding: 30px;
-            max-width: 400px;
-            width: 100%;
-            border: 1px solid #e9d9ff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 40px 32px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px var(--shadow);
         }
-        .auth-box h2 {
+
+        .auth-header {
             text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* ===== ФОРМА ===== */
+        .form-group {
             margin-bottom: 20px;
-            color: #1e1e2f;
         }
-        .auth-box input {
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
             width: 100%;
-            padding: 12px;
-            margin-bottom: 16px;
-            border-radius: 14px;
-            border: 1px solid #ddd;
+            padding: 14px 16px;            border: 2px solid var(--border);
+            border-radius: 12px;
             font-size: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
-        .auth-box button {
-            width: 100%;
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .gender-selection {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .gender-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .gender-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .gender-option label {
+            display: block;
             padding: 12px;
-            background: #007bff;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .gender-option input:checked + label {
+            border-color: var(--accent);
+            background: var(--accent);
             color: white;
-            border: none;
-            border-radius: 14px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border: none;            border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
         }
-        .auth-box button.secondary {
-            background: #6c757d;
-            margin-top: 8px;
-        }
-        .auth-box button:hover {
-            opacity: 0.9;
+
+        .submit-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
         }
 
-        #debug-log {
-            margin-top: 16px;
-            background: #fff3cd;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 0.8em;
-            word-break: break-all;
-            text-align: left;
-            border: 1px solid #ffc107;
-            color: #1e1e2f;
-            max-height: 150px;
-            overflow-y: auto;
-            font-family: monospace;
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
-        .log-entry { margin: 2px 0; }
-        .log-error { color: #b33c3c; }
-        .log-success { color: #2d7d2d; }
-        .log-info { color: #0056b3; }
 
-        .message {
-            padding: 10px;
+        /* ===== КОНСОЛЬ ===== */
+        .console-container {
+            margin-top: 24px;
             border-radius: 12px;
-            margin-bottom: 12px;
-            text-align: center;
-            font-weight: 500;
+            overflow: hidden;
+            border: 1px solid var(--console-border);
         }
-        .message.success { background: #e6f9e6; color: #2d7d2d; }
-        .message.error { background: #fde6e6; color: #b33c3c; }
-        .hidden { display: none; }
+
+        .console-header {
+            background: var(--console-bg);
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--console-border);
+        }
+
+        .console-output {
+            background: var(--console-bg);
+            padding: 12px 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--console-text);
+        }
+
+        /* ===== ЧАТ-БОТ ===== */
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+        }
+        .chat-bubble {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--shadow);
+            font-size: 28px;
+            color: white;
+        }
+
+        .chat-window {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            width: 300px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 32px var(--shadow);
+            display: none;
+        }
+
+        .chat-window.active {
+            display: block;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .chat-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .chat-close {            margin-left: auto;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        .chat-message-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        /* ===== ФУТЕР ===== */
+        .footer-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+        }
+
+        .footer-link a, .about-link {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .about-link {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+        }
+
+        /* ===== АДАПТИВ ===== */
+        @media (max-width: 480px) {
+            .auth-box { padding: 32px 24px; }
+            .auth-header h1 { font-size: 24px; }
+            .gender-selection { flex-direction: column; }
+            .chat-window { width: calc(100vw - 40px); right: -10px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="auth-box">
-        <h2>🔐 Добро пожаловать</h2>
-
-        <div id="debug-log">⏳ Ожидание действий...</div>
-        <div id="authMessage" class="message hidden"></div>
-
-        <input type="text" id="loginUsername" placeholder="Имя пользователя" />
-        <input type="password" id="loginPassword" placeholder="Пароль" />
-
-        <button id="loginBtn">Войти</button>
-        <button id="registerBtn" class="secondary">Зарегистрироваться</button>
-
-        <div style="text-align: center; margin-top: 16px; font-size: 14px; color: #888;">
-            <a href="#" onclick="alert('Напишите на smartsocials@mail.ru')" style="color:#007bff; text-decoration:none;">
-                📧 Забыли пароль?
-            </a>
-        </div>
+    <!-- Верхние контролы -->
+    <div class="top-controls">
+        <select id="langSelect">
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="uk">🇺🇦 Українська</option>
+            <option value="en">🇬🇧 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="de">🇩🇪 Deutsch</option>        </select>
+        <button class="theme-toggle" id="themeToggle" title="Переключить тему">🌙</button>
     </div>
 
+    <!-- Основная форма -->
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>🔐 Smart Social</h1>
+                <p>Войдите или создайте аккаунт. Если email не зарегистрирован, он создастся автоматически.</p>
+            </div>
+
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="username">Имя пользователя</label>
+                    <input type="text" id="username" placeholder="Введите имя" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" placeholder="Минимум 4 символа" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="gender-label">Пол</label>
+                    <div class="gender-selection">
+                        <div class="gender-option">
+                            <input type="radio" id="male" name="gender" value="male" checked />
+                            <label for="male">Мужской</label>
+                        </div>
+                        <div class="gender-option">
+                            <input type="radio" id="female" name="gender" value="female" />
+                            <label for="female">Женский</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">Войти / Зарегистрироваться</button>
+            </form>
+
+            <div class="console-container hidden" id="console">
+                <div class="console-header">💻 Системный журнал</div>
+                <div class="console-output" id="console-output"></div>
+            </div>
+
+            <div class="footer-link">
+                <a href="#" onclick="alert('Напишите на smartsocials@mail.ru')">📧 Забыли пароль?</a>
+            </div>
+            <a href="about.html" class="about-link">← О сайте</a>
+        </div>    </div>
+
+    <!-- Чат-виджет -->
+    <div class="chat-widget">
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-header">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Angel&backgroundColor=b6e3f4" alt="Avatar" class="chat-avatar">
+                <span class="chat-name">Ангел-Хранитель</span>
+                <span class="chat-close" id="chatClose">✕</span>
+            </div>
+            <div class="chat-message-text">Привет! Если не получается войти, проверь почту и пароль. 👋</div>
+        </div>
+        <div class="chat-bubble" id="chatOpen">💬</div>
+    </div>
+
+    <!-- Инициализация темы и языка -->
     <script>
-        // ===== SUPABASE (ключи из config.js) =====
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ===== КОНСОЛЬ =====
-        function log(msg, type = 'info') {
-            const box = document.getElementById('debug-log');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.textContent = '🔹 ' + msg;
-            box.appendChild(entry);
-            box.scrollTop = box.scrollHeight;
-            console.log('[Auth]', msg);
+        // ===== ТЕМА =====
+        const themeToggle = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
         }
 
-        function showMessage(text, type) {
-            const el = document.getElementById('authMessage');
-            el.textContent = text;
-            el.className = `message ${type}`;
-            el.classList.remove('hidden');
-        }
-
-        function hideMessage() {
-            document.getElementById('authMessage').classList.add('hidden');
-        }
-
-        // ===== АВТОРИЗАЦИЯ =====
-        async function handleAuth(action) {
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-
-            if (!username || !password) {
-                showMessage('Заполните все поля', 'error');
-                log('❌ Пустые поля', 'error');
-                return;
-            }
-
-            const fakeEmail = username.toLowerCase() + '@smart.social';
-            log(`📡 ${action === 'login' ? 'Вход' : 'Регистрация'} для ${username}...`);
-
-            if (action === 'register') {
-                const { data: existing } = await supabase
-                    .from('users')
-                    .select('username')
-                    .eq('username', username);
-
-                if (existing && existing.length > 0) {
-                    showMessage('Пользователь с таким именем уже существует', 'error');
-                    log('❌ Имя занято', 'error');
-                    return;
-                }
-
-                const { data, error } = await supabase.auth.signUp({
-                    email: fakeEmail,
-                    password: password,
-                    options: { data: { username } }
-                });
-
-                if (error) {
-                    showMessage(error.message, 'error');
-                    log('❌ Ошибка регистрации: ' + error.message, 'error');
-                    return;
-                }
-
-                if (data.user) {
-                    const { error: dbError } = await supabase.from('users').insert([{
-                        id: data.user.id,
-                        username: username,
-                        created_at: new Date().toISOString()
-                    }]);
-
-                    if (dbError) {
-                        log('⚠️ Пользователь создан, но ошибка записи в БД: ' + dbError.message, 'error');
-                    } else {
-                        log('✅ Пользователь создан в БД', 'success');
-                    }
-
-                    showMessage('Регистрация успешна! Теперь войдите.', 'success');
-                    log('✅ Регистрация прошла', 'success');
-                    document.getElementById('loginPassword').value = '';
-                }
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email: fakeEmail,
-                    password: password
-                });
-
-                if (error) {
-                    showMessage('Неверный логин или пароль', 'error');
-                    log('❌ Ошибка входа: ' + error.message, 'error');
-                    return;
-                }
-
-                log('✅ Вход выполнен, перенаправление...', 'success');
-                window.location.href = 'feed.html';
-            }
-        }
-
-        // ===== СОБЫТИЯ =====
-        document.getElementById('loginBtn').addEventListener('click', () => handleAuth('login'));
-        document.getElementById('registerBtn').addEventListener('click', () => handleAuth('register'));
-
-        // ===== ПРОВЕРКА СЕССИИ =====
-        supabase.auth.getSession().then(({ data }) => {
-            if (data.session) {
-                log('✅ Сессия уже есть, перенаправление на feed', 'success');
-                window.location.href = 'feed.html';
-            } else {
-                log('🔄 Сессии нет, показываем форму входа');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
             }
         });
 
-        // ===== ЗАПУСК =====
-        log('🚀 Страница загружена');
+        // ===== ЯЗЫК =====
+        const savedLang = localStorage.getItem('lang') || 'ru';
+        const langSelect = document.getElementById('langSelect');
+        
+        if (langSelect) {
+            langSelect.value = savedLang;
+            langSelect.addEventListener('change', (e) => {
+                localStorage.setItem('lang', e.target.value);
+                if (typeof applyLanguage === 'function') {
+                    applyLanguage(e.target.value);
+                }            });
+        }
+
+        // Применяем язык при загрузке
+        if (typeof applyLanguage === 'function') {
+            applyLanguage(savedLang);
+        }
+
+        // ===== ЧАТ =====
+        const chatOpen = document.getElementById('chatOpen');
+        const chatClose = document.getElementById('chatClose');
+        const chatWindow = document.getElementById('chatWindow');
+
+        chatOpen.addEventListener('click', () => chatWindow.classList.add('active'));
+        chatClose.addEventListener('click', () => chatWindow.classList.remove('active'));
     </script>
 </body>
 </html>
