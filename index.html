@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Social — вход</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f5f0ff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .auth-box {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid #e9d9ff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .auth-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1e1e2f;
+        }
+        .auth-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 14px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+        .auth-box button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .auth-box button.secondary {
+            background: #6c757d;
+            margin-top: 8px;
+        }
+        .auth-box button:hover {
+            opacity: 0.9;
+        }
+
+        #debug-log {
+            margin-top: 16px;
+            background: #fff3cd;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.8em;
+            word-break: break-all;
+            text-align: left;
+            border: 1px solid #ffc107;
+            color: #1e1e2f;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+        .log-entry { margin: 2px 0; }
+        .log-error { color: #b33c3c; }
+        .log-success { color: #2d7d2d; }
+        .log-info { color: #0056b3; }
+
+        .message {
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .message.success { background: #e6f9e6; color: #2d7d2d; }
+        .message.error { background: #fde6e6; color: #b33c3c; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-box">
+        <h2>🔐 Добро пожаловать</h2>
+
+        <div id="debug-log">⏳ Ожидание действий...</div>
+        <div id="authMessage" class="message hidden"></div>
+
+        <input type="text" id="loginUsername" placeholder="Имя пользователя" />
+        <input type="password" id="loginPassword" placeholder="Пароль" />
+
+        <button id="loginBtn">Войти</button>
+        <button id="registerBtn" class="secondary">Зарегистрироваться</button>
+
+        <div style="text-align: center; margin-top: 16px; font-size: 14px; color: #888;">
+            <a href="#" onclick="alert('Напишите на smartsocials@mail.ru')" style="color:#007bff; text-decoration:none;">
+                📧 Забыли пароль?
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // ===== КЛЮЧИ =====
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ===== КОНСОЛЬ =====
+        function log(msg, type = 'info') {
+            const box = document.getElementById('debug-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = '🔹 ' + msg;
+            box.appendChild(entry);
+            box.scrollTop = box.scrollHeight;
+            console.log('[Auth]', msg);
+        }
+
+        function showMessage(text, type) {
+            const el = document.getElementById('authMessage');
+            el.textContent = text;
+            el.className = `message ${type}`;
+            el.classList.remove('hidden');
+        }
+
+        function hideMessage() {
+            document.getElementById('authMessage').classList.add('hidden');
+        }
+
+        // ===== АВТОРИЗАЦИЯ =====
+        async function handleAuth(action) {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            if (!username || !password) {
+                showMessage('Заполните все поля', 'error');
+                log('❌ Пустые поля', 'error');
+                return;
+            }
+
+            const fakeEmail = username.toLowerCase() + '@smart.social';
+            log(`📡 ${action === 'login' ? 'Вход' : 'Регистрация'} для ${username}...`);
+
+            if (action === 'register') {
+                const { data: existing } = await supabase
+                    .from('users')
+                    .select('username')
+                    .eq('username', username);
+
+                if (existing && existing.length > 0) {
+                    showMessage('Пользователь с таким именем уже существует', 'error');
+                    log('❌ Имя занято', 'error');
+                    return;
+                }
+
+                const { data, error } = await supabase.auth.signUp({
+                    email: fakeEmail,
+                    password: password,
+                    options: { data: { username } }
+                });
+
+                if (error) {
+                    showMessage(error.message, 'error');
+                    log('❌ Ошибка регистрации: ' + error.message, 'error');
+                    return;
+                }
+
+                if (data.user) {
+                    const { error: dbError } = await supabase.from('users').insert([{
+                        id: data.user.id,
+                        username: username,
+                        created_at: new Date().toISOString()
+                    }]);
+
+                    if (dbError) {
+                        log('⚠️ Пользователь создан, но ошибка записи в БД: ' + dbError.message, 'error');
+                    } else {
+                        log('✅ Пользователь создан в БД', 'success');
+                    }
+
+                    showMessage('Регистрация успешна! Теперь войдите.', 'success');
+                    log('✅ Регистрация прошла', 'success');
+                    document.getElementById('loginPassword').value = '';
+                }
+            } else {
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: fakeEmail,
+                    password: password
+                });
+
+                if (error) {
+                    showMessage('Неверный логин или пароль', 'error');
+                    log('❌ Ошибка входа: ' + error.message, 'error');
+                    return;
+                }
+
+                log('✅ Вход выполнен, перенаправление...', 'success');
+                window.location.href = 'feed.html';
+            }
+        }
+
+        // ===== СОБЫТИЯ =====
+        document.getElementById('loginBtn').addEventListener('click', () => handleAuth('login'));
+        document.getElementById('registerBtn').addEventListener('click', () => handleAuth('register'));
+
+        // ===== ПРОВЕРКА СЕССИИ =====
+        supabase.auth.getSession().then(({ data }) => {
+            if (data.session) {
+                log('✅ Сессия уже есть, перенаправление на feed', 'success');
+                window.location.href = 'feed.html';
+            } else {
+                log('🔄 Сессии нет, показываем форму входа');
+            }
+        });
+
+        // ===== ЗАПУСК =====
+        log('🚀 Страница загружена');
+    </script>
+</body>
+  </html>
