@@ -1,7 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[SmartSocial] login.js загружен');
+
     // ===== КЛЮЧИ ИЗ CONFIG.JS =====
     if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
-        console.error('КРИТИЧЕСКАЯ ОШИБКА: config.js не загружен!');
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: config.js не загружен или ключи отсутствуют!');
+        alert('Ошибка: config.js не найден. Проверь подключение.');
         return;
     }
 
@@ -14,7 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const consoleOutput = document.getElementById('console-output');
 
     function log(message, type = 'info') {
-        if (!consoleBox || !consoleOutput) return;
+        console.log(`[LOG ${type}] ${message}`); // Дублируем в браузерную консоль
+        if (!consoleBox || !consoleOutput) {
+            console.warn('Консоль не найдена в DOM');
+            return;
+        }
         consoleBox.classList.remove('hidden');
         const time = new Date().toLocaleTimeString('ru-RU', { hour12: false });
         const color = type === 'error' ? '#ff4d4d' : '#ffd700';
@@ -26,19 +33,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (typeof window.supabase === 'undefined') {
-        log('❌ Supabase не загружен!', 'error');
+        log('❌ Supabase SDK не загружен!', 'error');
         return;
     }
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    log('✅ Supabase клиент инициализирован');
 
     if (!form) {
-        console.error('Форма #auth-form не найдена в DOM!');
+        log('❌ Форма #auth-form не найдена!', 'error');
         return;
     }
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        log('🚀 Форма отправлена, начинаем обработку...');
+        
         const username = usernameInput.value.trim();
         const password = passwordInput.value;
         let gender = 'male';
@@ -51,16 +61,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Обработка...';
-        consoleOutput.innerHTML = '';
-        log('🔒 Инициализация...');
+        if (consoleOutput) consoleOutput.innerHTML = '';
 
         try {
             const fakeEmail = `${username.toLowerCase()}@smartsocial.local`;
+            log(`🔍 Поиск ${fakeEmail}...`);
             
             let { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password });
 
             if (error && error.message.includes('Invalid login credentials')) {
-                log('👤 Регистрация нового пользователя...');
+                log('👤 Пользователь не найден. Регистрация...', 'info');
+                
                 const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
                     email: fakeEmail,
                     password,
@@ -69,35 +80,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (signUpError) throw signUpError;
 
-                // ЗАПИСЬ В ТАБЛИЦУ USERS
+                // === ЗАПИСЬ В ТАБЛИЦУ USERS ===
                 if (signUpData.user) {
+                    log('💾 Запись в таблицу users...', 'info');
                     const { error: dbErr } = await supabaseClient.from('users').insert([{
                         id: signUpData.user.id,
                         username,
                         gender
                     }]);
-                    if (dbErr) log('⚠️ Ошибка записи в БД: ' + dbErr.message, 'error');
-                    else log('✅ Профиль сохранён в БД!', 'success');
+                    
+                    if (dbErr) {
+                        log('⚠️ Ошибка RLS/БД: ' + dbErr.message, 'error');
+                    } else {
+                        log('✅ Профиль сохранён в БД!', 'success');
+                    }
                 }
 
                 if (!signUpData.session) {
-                    log('❌ Нет сессии (проверь Email Confirmation в Supabase)', 'error');
+                    log('❌ Нет сессии! Проверь Email Confirmation в Supabase.', 'error');
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Войти / Зарегистрироваться';
                     return;
                 }
                 
-                log('🚀 Успех! Редирект...', 'success');
-                setTimeout(() => window.location.href = 'feed.html', 800);
+                log('🎉 Успех! Редирект на feed.html...', 'success');
+                setTimeout(() => window.location.href = 'feed.html', 1000);
 
             } else if (error) {
                 throw error;
             } else {
                 log('✅ Вход выполнен. Редирект...', 'success');
-                setTimeout(() => window.location.href = 'feed.html', 800);
+                setTimeout(() => window.location.href = 'feed.html', 1000);
             }
         } catch (err) {
-            log('❌ ' + (err.message || String(err)), 'error');
+            log('❌ Ошибка: ' + (err.message || String(err)), 'error');
             submitBtn.disabled = false;
             submitBtn.textContent = 'Войти / Зарегистрироваться';
         }
