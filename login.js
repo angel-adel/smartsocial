@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ===== 1. ПРОВЕРКА КОНФИГА (КЛЮЧИ БЕРУТСЯ ИЗ config.js) =====
+    // ===== 1. ПРОВЕРКА КОНФИГА =====
     if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
         console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: config.js не загружен!');
-        alert('Ошибка: Файл config.js не найден или не подключен.');
         return;
     }
 
@@ -15,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const consoleBox = document.getElementById('console');
     const consoleOutput = document.getElementById('console-output');
 
-    // ===== 3. ФУНКЦИЯ ЛОГИРОВАНИЯ =====
+    // ===== 3. ЛОГИРОВАНИЕ =====
     function log(message, type = 'info') {
         if (!consoleBox || !consoleOutput) return;
         consoleBox.classList.remove('hidden');
@@ -29,13 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
         consoleOutput.scrollTop = consoleOutput.scrollHeight;
     }
 
-    // ===== 4. ИНИЦИАЛИЗАЦИЯ SUPABASE =====
+    // ===== 4. ИНИЦИАЛИЗАЦИЯ =====
     if (typeof window.supabase === 'undefined') {
         log('КРИТИЧЕСКАЯ ОШИБКА: Библиотека Supabase не загружена!', 'error');
         return;
     }
 
-    // Используем переменные из config.js
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ===== 5. ОБРАБОТКА ФОРМЫ =====
@@ -45,9 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = usernameInput.value.trim();
             const password = passwordInput.value;
             let gender = 'male';
-            genderRadios.forEach(el => {
-                if (el.checked) gender = el.value;
-            });
+            genderRadios.forEach(el => { if (el.checked) gender = el.value; });
 
             if (!username || password.length < 4) {
                 log('Имя не может быть пустым, пароль минимум 4 символа.', 'error');
@@ -60,15 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
             log('🔒 Инициализация протокола безопасности...');
 
             try {
-                const safeUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                
-                // === ИСПРАВЛЕНИЕ ОШИБКИ: МЕНЯЕМ .local НА .app ===
+                // === ИСПРАВЛЕНИЕ: Убираем пробелы и спецсимволы, меняем домен ===
+                const safeUsername = username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
                 const fakeEmail = `${safeUsername}@smartsocial.app`; 
                 
-                log(`🔍 Генерация системного ID для [${username}]...`);
+                log(`🔍 Генерация ID для [${safeUsername}]...`);
                 await new Promise(r => setTimeout(r, 300));
 
-                log('📡 Поиск пользователя в защищённой базе...');
+                log('📡 Поиск пользователя...');
                 let { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: fakeEmail,
                     password: password
@@ -76,26 +71,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (error) {
                     if (error.message.includes('Invalid login credentials')) {
-                        log('👤 Пользователь не найден. Инициирую протокол регистрации...', 'info');
+                        log('👤 Пользователь не найден. Регистрация...', 'info');
                         await new Promise(r => setTimeout(r, 400));
 
-                        log('🔐 Генерация bcrypt-хеша пароля...');
+                        log('🔐 Создание аккаунта...');
                         const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
                             email: fakeEmail,
                             password: password,
-                            options: {
-                                data: {
-                                    username: username,
-                                    gender: gender
-                                }
-                            }
+                            options: { data: { username: username, gender: gender } }
                         });
 
                         if (signUpError) throw signUpError;
 
-                        // === ДОБАВЛЯЕМ ЗАПИСЬ В ТАБЛИЦУ USERS ===
+                        // === ЗАПИСЬ В ТАБЛИЦУ USERS ===
                         if (signUpData.user) {
-                            log('💾 Сохранение профиля в таблицу users...', 'info');
+                            log('💾 Сохранение в таблицу users...', 'info');
                             const { error: dbError } = await supabaseClient.from('users').insert([{
                                 id: signUpData.user.id,
                                 username: username,
@@ -104,28 +94,28 @@ document.addEventListener('DOMContentLoaded', () => {
                             }]);
 
                             if (dbError) {
-                                log('⚠️ Ошибка записи в БД (проверь RLS): ' + dbError.message, 'error');
+                                log('⚠️ Ошибка записи в БД: ' + dbError.message, 'error');
                             } else {
-                                log('✅ Профиль успешно сохранён в БД!', 'success');
+                                log('✅ Профиль сохранён в БД!', 'success');
                             }
                         }
 
                         if (!signUpData.session) {
-                            log('❌ Ошибка сессии. Проверьте настройки Email Confirmation в Supabase.', 'error');
+                            log('❌ Нет сессии. Проверь настройки Email в Supabase.', 'error');
                             submitBtn.disabled = false;
                             submitBtn.textContent = 'Войти / Зарегистрироваться';
                             return;
-                        } else {
-                            log('🚀 Успешная авторизация. Перенаправление...', 'success');
-                            await new Promise(r => setTimeout(r, 800));
-                            window.location.href = 'feed.html';
                         }
+
+                        log('🚀 Успех! Перенаправление...', 'success');
+                        await new Promise(r => setTimeout(r, 800));
+                        window.location.href = 'feed.html';
+
                     } else {
                         throw error;
                     }
                 } else {
-                    log('✅ Хеш пароля совпал. Сессия активна.', 'success');
-                    log('🚀 Успешный вход. Перенаправление...', 'success');
+                    log('✅ Вход выполнен. Перенаправление...', 'success');
                     await new Promise(r => setTimeout(r, 800));
                     window.location.href = 'feed.html';
                 }
