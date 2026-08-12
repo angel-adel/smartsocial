@@ -145,6 +145,7 @@
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
+            checkNightMode();
             checkDailyLimit();
             loadPosts();
         }
@@ -165,6 +166,19 @@
             }
         }
 
+          function checkNightMode() {
+            const hour = new Date().getHours();
+            const btn = document.getElementById('publishBtn');
+            const info = document.getElementById('limitInfo');
+            
+            if (hour >= 23 || hour < 7) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.textContent = 'Ночной режим 🌙';
+                if(info) info.textContent = 'Публикация доступна с 07:00 до 23:00';
+            }
+        }
+        
         document.getElementById('logoutBtn').onclick = async () => { await supabase.auth.signOut(); window.location.href = 'index.html'; };
 
         async function uploadImage(file) {
@@ -177,28 +191,36 @@
             } catch (e) { return null; }
         }
 
-        document.getElementById('publishBtn').onclick = async () => {
-            const content = document.getElementById('postContent').value.trim();
-            const link = document.getElementById('postLink').value.trim();
-            const file = document.getElementById('imageInput').files[0];
-            if (!content && !link && !file) return;
+      document.getElementById('publishBtn').onclick = async () => {
+    // === ПРОВЕРКА НОЧНОГО РЕЖИМА (23:00 - 07:00) ===
+    const hour = new Date().getHours();
+    if (hour >= 23 || hour < 7) {
+        alert('🌙 Ночной режим: с 23:00 до 07:00 публикация запрещена. Отдохни, мир подождёт твоих мыслей до утра!');
+        return; // Прерываем выполнение, пост не отправится
+    }
+    // ==============================================
 
-            const btn = document.getElementById('publishBtn');
-            btn.disabled = true; btn.textContent = '...';
-            const imgUrl = file ? await uploadImage(file) : null;
+    const content = document.getElementById('postContent').value.trim();
+    const link = document.getElementById('postLink').value.trim();
+    const file = document.getElementById('imageInput').files[0];
+    if (!content && !link && !file) return;
 
-            const { error } = await supabase.from('posts').insert([{ user_id: currentUser.id, content, media_url: link, image_url: imgUrl }]);
-            if (!error) {
-                document.getElementById('postContent').value = '';
-                document.getElementById('postLink').value = '';
-                document.getElementById('imageInput').value = '';
-                document.getElementById('fileName').textContent = '';
-                checkDailyLimit();
-                loadPosts();
-            }
-            btn.disabled = false; btn.textContent = 'Опубликовать';
-        };
+    const btn = document.getElementById('publishBtn');
+    btn.disabled = true; btn.textContent = '...';
+    const imgUrl = file ? await uploadImage(file) : null;
 
+    const { error } = await supabase.from('posts').insert([{ user_id: currentUser.id, content, media_url: link, image_url: imgUrl }]);
+    if (!error) {
+        document.getElementById('postContent').value = '';
+        document.getElementById('postLink').value = '';
+        document.getElementById('imageInput').value = '';
+        document.getElementById('fileName').textContent = '';
+        checkDailyLimit();
+        loadPosts();
+    }
+    btn.disabled = false; btn.textContent = 'Опубликовать';
+};
+        
         async function loadPosts() {
             const list = document.getElementById('feedList');
             list.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
