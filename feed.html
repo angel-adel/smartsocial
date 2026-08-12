@@ -200,10 +200,6 @@
             window.location.href = 'index.html';
         }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // ВСТАВЬ СЮДА СВОЙ КЛЮЧ FREEIMAGEHOST
-        const IMG_API_KEY = '6d207e02198a847a9a8d0a2a901485a5'; 
-
         let currentUser = null;
         let currentUsername = 'User';
 
@@ -260,18 +256,36 @@
             document.getElementById('fileName').textContent = file ? file.name : '';
         });
 
-        async function uploadImage(file) {
-            const formData = new FormData();
-            formData.append("source", file);
-            formData.append("key", IMG_API_KEY);
-            formData.append("action", "upload");
-            try {
-                const res = await fetch("https://freeimage.host/api/1/upload", { method: "POST", body: formData });
-                const data = await res.json();
-                return data.status_code === 200 ? data.image.url : null;
-            } catch (e) { return null; }
-        }
+async function uploadImage(file) {
+    // Твой ключ ImgBB
+    const IMGBB_KEY = '15cba85a1a5259f80f5326d1fb9bd1f1'; 
+    
+    const formData = new FormData();
+    formData.append("image", file); // ImgBB требует поле "image"
 
+    try {
+        console.log('📤 Отправка на ImgBB...');
+        // URL эндпоинта ImgBB + ключ в параметрах
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        
+        console.log('Ответ ImgBB:', data);
+
+        if (data.success) {
+            console.log('✅ Фото загружено:', data.data.url);
+            return data.data.url;
+        } else {
+            throw new Error(data.error ? data.error.message : 'Ошибка загрузки');
+        }
+    } catch (e) {
+        console.error('❌ Ошибка ImgBB:', e);
+        alert('Ошибка загрузки фото: ' + e.message);
+        return null;
+    }
+}
         // ===== ПОСТЫ =====
         document.getElementById('publishBtn').addEventListener('click', async () => {
             const content = document.getElementById('postContent').value.trim();
