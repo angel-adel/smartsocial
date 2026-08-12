@@ -244,16 +244,50 @@
 
                 let mediaHtml = '';
                 if (post.image_url) mediaHtml += `<img src="${post.image_url}" class="post-image">`;
-                if (post.media_url) {
-                    const pid = `p-${post.id}`;
-                    let embed = '';
-                    const yt = post.media_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-                    if (yt) embed = `<iframe src="https://www.youtube.com/embed/${yt[1]}" allowfullscreen></iframe>`;
-                    else if (post.media_url.match(/\.(mp3|wav|ogg)$/i)) embed = `<div style="padding:20px; background:#fff;"><audio controls src="${post.media_url}" style="width:100%"></audio></div>`;
-                    else if (post.media_url.match(/\.(mp4|webm)$/i)) embed = `<video controls src="${post.media_url}"></video>`;
-                    else embed = `<div style="padding:20px; text-align:center; background:#fff;"><a href="${post.media_url}" target="_blank" style="color:var(--accent)">🔗 Открыть ссылку</a></div>`;
-                    mediaHtml += `<div class="media-box"><button class="play-btn" onclick="toggleMedia('${pid}', this)">▶ Играть / Показать</button><div id="${pid}" class="player-frame">${embed}</div></div>`;
-                }
+if (post.media_url) {
+    const pid = `p-${post.id}`;
+    let embedHtml = '';
+    const url = post.media_url;
+
+    // 1. YouTube (Нужен спец. формат, иначе не откроется)
+    if (url.includes('youtube.com/watch') || url.includes('youtu.be')) {
+        let videoId = url.split('v=')[1] || (url.match(/youtu\.be\/([^?]+)/) || [])[1];
+        if (videoId) {
+            videoId = videoId.split('&')[0];
+            embedHtml = `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+        }
+    } 
+    // 2. RuTube (Нужен спец. формат)
+    else if (url.includes('rutube.ru')) {
+        const match = url.match(/(?:video|embed)\/([a-f0-9]+)/i);
+        if (match) {
+            embedHtml = `<iframe src="https://rutube.ru/play/embed/${match[1]}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+        } else {
+            // Если ID не найден - суем как есть
+            embedHtml = `<iframe src="${url}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+        }
+    } 
+    // 3. Прямое Аудио (MP3) - лучше нативный плеер
+    else if (url.match(/\.(mp3|wav|ogg|m4a)$/i)) {
+        embedHtml = `<div style="padding: 20px; background: #fff; display:flex; align-items:center; justify-content:center; height:100%;"><audio controls src="${url}" style="width: 90%;"></audio></div>`;
+    } 
+    // 4. Прямое Видео (MP4) - лучше нативный плеер
+    else if (url.match(/\.(mp4|webm|mov)$/i)) {
+        embedHtml = `<video controls src="${url}" style="width:100%; height:100%; object-fit:contain;"></video>`;
+    } 
+    // 5. ВСЁ ОСТАЛЬНОЕ (VK, Сайты, Ссылки) -> СУЕМ ВО ФРЕЙМ (ТВОЯ СТАРАЯ ЛОГИКА)
+    else {
+        // Мы добавляем sandbox, чтобы разрешить скрипты и формы, но запретить доступ к родительскому окну (безопасность)
+        embedHtml = `<iframe src="${url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+    }
+
+    mediaHtml += `
+        <div class="media-box">
+            <button class="play-btn" onclick="toggleMedia('${pid}', this)">▶ Играть / Показать</button>
+            <div id="${pid}" class="player-frame">${embedHtml}</div>
+        </div>
+    `;
+}
 
                 return `
                 <div class="feed-item">
