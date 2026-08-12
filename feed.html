@@ -123,8 +123,11 @@
 
     <script>
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const IMGBB_KEY = '6d207e02198a847a9a8d0a2a901485a5'; 
+        
+        // === ИСПРАВЛЕНИЕ: Переименовали в supabaseClient ===
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        const IMGBB_KEY = '15cba85a1a5259f80f5326d1fb9bd1f1'; 
         let currentUser = null;
 
         // Theme & Lang
@@ -142,7 +145,7 @@
         langSelect.onchange = (e) => { localStorage.setItem('lang', e.target.value); if(typeof applyLanguage === 'function') applyLanguage(e.target.value); };
 
         async function init() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
             checkNightMode();
@@ -150,10 +153,21 @@
             loadPosts();
         }
 
-        // Проверка лимита постов
+        function checkNightMode() {
+            const hour = new Date().getHours();
+            const btn = document.getElementById('publishBtn');
+            const info = document.getElementById('limitInfo');
+            if (hour >= 23 || hour < 7) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.textContent = 'Ночной режим 🌙';
+                if(info) info.textContent = 'Публикация доступна с 07:00 до 23:00';
+            }
+        }
+
         async function checkDailyLimit() {
             const today = new Date().toISOString().split('T')[0];
-            const { count } = await supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).gte('created_at', today);
+            const { count } = await supabaseClient.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).gte('created_at', today);
             const info = document.getElementById('limitInfo');
             const btn = document.getElementById('publishBtn');
             if (count >= 10) {
@@ -162,24 +176,14 @@
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
             } else {
-                info.textContent = `Осталось постов сегодня: ${10 - count}`;
+                // Если кнопка не заблокирована ночным режимом, показываем лимит
+                if (btn.textContent !== 'Ночной режим 🌙') {
+                    info.textContent = `Осталось постов сегодня: ${10 - count}`;
+                }
             }
         }
 
-          function checkNightMode() {
-            const hour = new Date().getHours();
-            const btn = document.getElementById('publishBtn');
-            const info = document.getElementById('limitInfo');
-            
-            if (hour >= 23 || hour < 7) {
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-                btn.textContent = 'Ночной режим 🌙';
-                if(info) info.textContent = 'Публикация доступна с 07:00 до 23:00';
-            }
-        }
-        
-        document.getElementById('logoutBtn').onclick = async () => { await supabase.auth.signOut(); window.location.href = 'index.html'; };
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
 
         async function uploadImage(file) {
             const formData = new FormData();
@@ -191,52 +195,49 @@
             } catch (e) { return null; }
         }
 
-      document.getElementById('publishBtn').onclick = async () => {
-    // === ПРОВЕРКА НОЧНОГО РЕЖИМА (23:00 - 07:00) ===
-    const hour = new Date().getHours();
-    if (hour >= 23 || hour < 7) {
-        alert('🌙 Ночной режим: с 23:00 до 07:00 публикация запрещена. Отдохни, мир подождёт твоих мыслей до утра!');
-        return; // Прерываем выполнение, пост не отправится
-    }
-    // ==============================================
+        document.getElementById('publishBtn').onclick = async () => {
+            const hour = new Date().getHours();
+            if (hour >= 23 || hour < 7) {
+                alert('🌙 Ночной режим: с 23:00 до 07:00 публикация запрещена. Отдохни, мир подождёт твоих мыслей до утра!');
+                return;
+            }
 
-    const content = document.getElementById('postContent').value.trim();
-    const link = document.getElementById('postLink').value.trim();
-    const file = document.getElementById('imageInput').files[0];
-    if (!content && !link && !file) return;
+            const content = document.getElementById('postContent').value.trim();
+            const link = document.getElementById('postLink').value.trim();
+            const file = document.getElementById('imageInput').files[0];
+            if (!content && !link && !file) return;
 
-    const btn = document.getElementById('publishBtn');
-    btn.disabled = true; btn.textContent = '...';
-    const imgUrl = file ? await uploadImage(file) : null;
+            const btn = document.getElementById('publishBtn');
+            btn.disabled = true; btn.textContent = '...';
+            const imgUrl = file ? await uploadImage(file) : null;
 
-    const { error } = await supabase.from('posts').insert([{ user_id: currentUser.id, content, media_url: link, image_url: imgUrl }]);
-    if (!error) {
-        document.getElementById('postContent').value = '';
-        document.getElementById('postLink').value = '';
-        document.getElementById('imageInput').value = '';
-        document.getElementById('fileName').textContent = '';
-        checkDailyLimit();
-        loadPosts();
-    }
-    btn.disabled = false; btn.textContent = 'Опубликовать';
-};
+            const { error } = await supabaseClient.from('posts').insert([{ user_id: currentUser.id, content, media_url: link, image_url: imgUrl }]);
+            if (!error) {
+                document.getElementById('postContent').value = '';
+                document.getElementById('postLink').value = '';
+                document.getElementById('imageInput').value = '';
+                document.getElementById('fileName').textContent = '';
+                checkDailyLimit();
+                loadPosts();
+            }
+            btn.disabled = false; btn.textContent = 'Опубликовать';
+        };
         
         async function loadPosts() {
             const list = document.getElementById('feedList');
             list.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
             
-            const { data: posts } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+            const { data: posts } = await supabaseClient.from('posts').select('*').order('created_at', { ascending: false });
             if (!posts) return;
-            const { data: likes } = await supabase.from('likes').select('post_id, user_id');
+            const { data: likes } = await supabaseClient.from('likes').select('post_id, user_id');
             
             const html = await Promise.all(posts.map(async (post) => {
-                const { data: u } = await supabase.from('users').select('username').eq('id', post.user_id).single();
+                const { data: u } = await supabaseClient.from('users').select('username').eq('id', post.user_id).single();
                 const author = u ? u.username : 'Unknown';
                 const isOwner = post.user_id === currentUser.id;
                 const postLikes = likes.filter(l => l.post_id === post.id);
                 const isLiked = postLikes.some(l => l.user_id === currentUser.id);
 
-                // Логика длинного текста
                 const isLong = post.content.length > 300;
                 const contentClass = isLong ? 'post-content collapsed' : 'post-content';
                 const readMoreBtn = isLong ? `<button class="read-more-btn" onclick="toggleReadMore(this)">Читать еще...</button>` : '';
@@ -303,14 +304,14 @@
         };
 
         window.toggleLike = async (postId, btn) => {
-            const { data: existing } = await supabase.from('likes').select('*').eq('post_id', postId).eq('user_id', currentUser.id).single();
-            if (existing) await supabase.from('likes').delete().eq('id', existing.id);
-            else await supabase.from('likes').insert([{ post_id: postId, user_id: currentUser.id }]);
+            const { data: existing } = await supabaseClient.from('likes').select('*').eq('post_id', postId).eq('user_id', currentUser.id).single();
+            if (existing) await supabaseClient.from('likes').delete().eq('id', existing.id);
+            else await supabaseClient.from('likes').insert([{ post_id: postId, user_id: currentUser.id }]);
             loadPosts();
         };
 
-        window.deletePost = async (id) => { if(confirm('Удалить?')) { await supabase.from('posts').delete().eq('id', id); checkDailyLimit(); loadPosts(); } };
-        window.editPost = async (id, text) => { const t = prompt('Редактировать:', text); if(t!==null && t!==text) { await supabase.from('posts').update({content:t}).eq('id', id); loadPosts(); } };
+        window.deletePost = async (id) => { if(confirm('Удалить?')) { await supabaseClient.from('posts').delete().eq('id', id); checkDailyLimit(); loadPosts(); } };
+        window.editPost = async (id, text) => { const t = prompt('Редактировать:', text); if(t!==null && t!==text) { await supabaseClient.from('posts').update({content:t}).eq('id', id); loadPosts(); } };
 
         init();
     </script>
