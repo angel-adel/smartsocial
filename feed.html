@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лента | Smart Social</title>
+    
+    <!-- Подключаем конфиг и библиотеки -->
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
+            --bg-secondary: #ffffff;
+            --text-primary: #1e1e2f;
+            --text-secondary: #6b6b80;
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --border: #e9d9ff;
+            --shadow: rgba(124, 58, 237, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
+            --bg-secondary: #2a1a3e;
+            --text-primary: #f5f0ff;
+            --text-secondary: #c4b5fd;
+            --accent: #a78bfa;
+            --accent-hover: #c4b5fd;
+            --border: #4c1d95;
+            --shadow: rgba(167, 139, 250, 0.2);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding-bottom: 40px;
+        }
+
+        /* ===== ШАПКА ===== */
+        header {
+            background: var(--bg-secondary);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+
+        .logo { font-weight: 700; font-size: 20px; color: var(--accent); }
+        
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ===== КОНТЕЙНЕР ===== */
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 16px;
+        }
+
+        /* ===== ФОРМА ПОСТА ===== */
+        .create-post {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .create-post textarea {
+            width: 100%;
+            border: none;
+            resize: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 16px;
+            min-height: 80px;
+            outline: none;
+            margin-bottom: 12px;
+            font-family: inherit;
+        }
+        .post-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .publish-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .publish-btn:hover { background: var(--accent-hover); }
+
+        /* ===== ЛЕНТА ===== */
+        .feed-item {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .username { font-weight: 600; font-size: 15px; }
+        .timestamp { font-size: 12px; color: var(--text-secondary); margin-left: auto; }
+        .post-content { font-size: 16px; line-height: 1.5; white-space: pre-wrap; }
+
+        /* ===== ТЕМА ===== */
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--shadow);
+            font-size: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">Smart Social</div>
+        <button class="logout-btn" id="logoutBtn">Выйти</button>
+    </header>
+
+    <div class="container">
+        <!-- Форма создания поста -->
+        <div class="create-post">
+            <textarea id="postContent" placeholder="Что у вас нового?"></textarea>
+            <div class="post-actions">
+                <button class="publish-btn" id="publishBtn">Опубликовать</button>
+            </div>
+        </div>
+
+        <!-- Лента постов -->
+        <div id="feedList">
+            <!-- Сюда будут падать посты -->
+            <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                Загрузка ленты...
+            </div>
+        </div>
+    </div>
+
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <script>
+        // ===== ТЕМА =====
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
+        }
+        themeToggle.addEventListener('click', () => {            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        // ===== SUPABASE =====
+        if (typeof SUPABASE_URL === 'undefined') {
+            alert('Ошибка конфига');
+            window.location.href = 'index.html';
+        }
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ===== ПРОВЕРКА АВТОРИЗАЦИИ =====
+        let currentUser = null;
+
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = session.user;
+            loadFeed();
+        }
+
+        // ===== ВЫХОД =====
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'index.html';
+        });
+
+        // ===== ЗАГРУЗКА ЛЕНТЫ (ЗАГЛУШКА) =====
+        async function loadFeed() {
+            const feedList = document.getElementById('feedList');
+            
+            // Здесь потом будет запрос к БД: supabase.from('posts').select('*')...
+            // Пока просто имитируем данные
+            
+            setTimeout(() => {
+                feedList.innerHTML = `
+                    <div class="feed-item">
+                        <div class="feed-header">                            <div class="avatar"></div>
+                            <span class="username">System</span>
+                            <span class="timestamp">только что</span>
+                        </div>
+                        <div class="post-content">Добро пожаловать в Smart Social, ${currentUser.email.split('@')[0]}! 🎉\nЭто ваш первый пост в новой ленте.</div>
+                    </div>
+                `;
+            }, 500);
+        }
+
+        // ===== ПУБЛИКАЦИЯ (ЗАГЛУШКА) =====
+        document.getElementById('publishBtn').addEventListener('click', () => {
+            const text = document.getElementById('postContent').value;
+            if (!text.trim()) return;
+            
+            alert('Пост отправлен! (Логика записи в БД будет добавлена следующим шагом)');
+            document.getElementById('postContent').value = '';
+        });
+
+        // Запуск
+        checkAuth();
+    </script>
+</body>
+  </html>
