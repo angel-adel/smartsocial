@@ -131,6 +131,24 @@
         let currentUser = null;
 
         // Theme & Lang
+        // ===== ЯЗЫК =====
+        const savedLang = localStorage.getItem('lang') || 'ru';
+        const langSelect = document.getElementById('langSelect');
+        
+        if (langSelect) {
+            langSelect.value = savedLang;
+            langSelect.addEventListener('change', (e) => {
+                localStorage.setItem('lang', e.target.value);
+                if (typeof applyLanguage === 'function') {
+                    applyLanguage(e.target.value);
+                }            });
+        }
+
+        // Применяем язык при загрузке
+        if (typeof applyLanguage === 'function') {
+            applyLanguage(savedLang);
+        }
+        
         const themeToggle = document.getElementById('themeToggle');
         if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
