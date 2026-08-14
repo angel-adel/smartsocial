@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль | Smart Social</title>
+    <script src="config.js"></script>
+    <script src="i18n.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
+            --bg-secondary: #ffffff;
+            --text-primary: #1e1e2f;
+            --text-secondary: #6b6b80;
+            --accent: #7c3aed;
+            --border: #e9d9ff;
+            --shadow: rgba(124, 58, 237, 0.1);
+        }
+        [data-theme="dark"] {
+            --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
+            --bg-secondary: #2a1a3e;
+            --text-primary: #f5f0ff;
+            --text-secondary: #c4b5fd;
+            --accent: #a78bfa;
+            --border: #4c1d95;
+            --shadow: rgba(167, 139, 250, 0.2);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); padding-bottom: 80px; }
+
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
+        .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 0 16px; }
+
+        /* Карточка профиля */
+        .profile-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 28px 20px; text-align: center; box-shadow: 0 4px 12px var(--shadow); margin-top: 20px; }
+        .avatar-wrap { position: relative; width: 110px; margin: 0 auto 14px; }
+        .avatar-big { width: 110px; height: 110px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 52px; overflow: hidden; border: 3px solid var(--accent); }
+        .avatar-edit { position: absolute; bottom: 2px; right: 2px; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; border: none; cursor: pointer; font-size: 15px; }
+        #profileName { font-size: 22px; margin-bottom: 6px; }
+        .profile-meta { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+        .profile-bio { font-size: 15px; margin-bottom: 16px; font-style: italic; }
+
+        /* Редактирование */
+        .edit-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px; box-shadow: 0 4px 12px var(--shadow); }
+        .edit-card label { display: block; font-size: 13px; color: var(--text-secondary); margin: 10px 0 6px; }
+        .edit-card input, .edit-card textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; outline: none; }
+        .edit-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+        .publish-btn { background: var(--accent); color: white; border: none; padding: 10px 24px; border-radius: 20px; font-weight: 600; cursor: pointer; }
+
+        /* Статистика */
+        .stats-row { display: flex; gap: 12px; margin: 20px 0; }
+        .stat-box { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; text-align: center; box-shadow: 0 2px 8px var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+        .stat-box b { font-size: 20px; color: var(--accent); }
+        .stat-box span { font-size: 12px; color: var(--text-secondary); }
+
+        /* Сетка постов */
+        .section-title { margin: 24px 0 12px; font-size: 17px; }
+        .posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .grid-tile { aspect-ratio: 1/1; border-radius: 12px; background-color: var(--bg-secondary); border: 1px solid var(--border); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--text-secondary); overflow: hidden; padding: 6px; text-align: center; }
+        .text-tile { font-size: 11px; line-height: 1.3; }
+
+        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
+        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
+        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
+        .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
+        <div class="controls">
+            <select id="langSelect">
+                <option value="ru">🇷 RU</option><option value="uk">🇺 UA</option><option value="en">🇬🇧 EN</option><option value="es">🇪 ES</option><option value="de">🇩 DE</option>
+            </select>
+            <button class="btn-sm" onclick="location.href='feed.html'">📰 Лента</button>
+            <button class="btn-sm" id="logoutBtn">Выйти</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Карточка профиля -->
+        <div class="profile-card">
+            <div class="avatar-wrap">
+                <div class="avatar-big" id="avatarBox">👤</div>
+                <button class="avatar-edit" onclick="document.getElementById('avatarInput').click()" title="Сменить аватар">📷</button>
+                <input type="file" id="avatarInput" accept="image/*" style="display:none">
+            </div>
+            <h2 id="profileName">Загрузка...</h2>
+            <div class="profile-meta" id="profileMeta"></div>
+            <p class="profile-bio" id="profileBio"></p>
+            <button class="btn-sm" id="editBtn">✏️ Редактировать профиль</button>
+        </div>
+
+        <!-- Форма редактирования -->
+        <div class="edit-card" id="editCard" style="display:none;">
+            <label>Имя:</label>
+            <input id="editName" maxlength="40">
+            <label>Статус (о себе):</label>
+            <textarea id="editBio" rows="3" maxlength="150" placeholder="Пара слов о себе... (например: ценитель эстетики и красивых женских ножек 😉)"></textarea>
+            <div class="edit-actions">
+                <button class="btn-sm" id="cancelBtn">Отмена</button>
+                <button class="publish-btn" id="saveBtn">Сохранить</button>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats-row">
+            <div class="stat-box"><b id="statPosts">0</b><span>постов</span></div>
+            <div class="stat-box"><b id="statLikes">0</b><span>лайков собрано</span></div>
+            <div class="stat-box"><b id="statDays">0</b><span>дней с нами</span></div>
+        </div>
+
+        <!-- Мои посты -->
+        <h3 class="section-title">📁 Мои публикации</h3>
+        <div class="posts-grid" id="postsGrid"></div>
+    </div>
+
+    <div class="angel-widget">
+        <div class="angel-window" id="angelWindow">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Ангел-Хранитель</strong><span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span></div>
+            <p style="font-size:14px; color:var(--text-secondary)">Твой профиль — твои правила. Но аватарку выбери со вкусом! 👼</p>
+        </div>
+        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
+    </div>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <script>
+        if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const IMGBB_KEY = '15cba85a1a5259f80f5326d1fb9bd1f1';
+        let currentUser = null;
+
+        // Theme & Lang
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+        themeToggle.onclick = () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        };
+        const langSelect = document.getElementById('langSelect');
+        langSelect.value = localStorage.getItem('lang') || 'ru';
+        if (typeof applyLanguage === 'function') applyLanguage(langSelect.value);
+        langSelect.onchange = (e) => { localStorage.setItem('lang', e.target.value); if(typeof applyLanguage === 'function') applyLanguage(e.target.value); };
+
+        function escapeHtml(s) {
+            return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,' ');
+        }
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'index.html';
+            currentUser = session.user;
+            loadProfile();
+        }
+
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
+
+        // ===== ЗАГРУЗКА ПРОФИЛЯ =====
+        async function loadProfile() {
+            const { data } = await supabaseClient.from('users').select('*').eq('id', currentUser.id).single();
+            if (!data) return;
+
+            document.getElementById('profileName').textContent = data.username || 'Без имени';
+            
+            const regDate = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+            const days = data.created_at ? Math.max(1, Math.floor((Date.now() - new Date(data.created_at)) / 86400000)) : 1;
+            const genderIcon = data.gender === 'female' ? '♀' : '♂';
+            document.getElementById('profileMeta').innerHTML = `${genderIcon} · На сайте с ${regDate}`;
+            document.getElementById('statDays').textContent = days;
+
+            document.getElementById('profileBio').textContent = data.bio || 'Пока без статуса. Но это можно исправить! ✨';
+
+            const box = document.getElementById('avatarBox');
+            box.innerHTML = data.avatar_url 
+                ? `<img src="${data.avatar_url}" style="width:100%; height:100%; object-fit:cover;">` 
+                : '👤';
+
+            document.getElementById('editName').value = data.username || '';
+            document.getElementById('editBio').value = data.bio || '';
+
+            loadStats();
+            loadMyPosts();
+        }
+
+        // ===== СМЕНА АВАТАРА =====
+        document.getElementById('avatarInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    const { error } = await supabaseClient.from('users').update({ avatar_url: data.data.url }).eq('id', currentUser.id);
+                    if (!error) loadProfile();
+                    else alert('Ошибка БД: ' + error.message);
+                } else alert('Ошибка загрузки фото');
+            } catch (err) { alert('Не удалось загрузить аватар'); }
+        });
+
+        // ===== РЕДАКТИРОВАНИЕ =====
+        document.getElementById('editBtn').onclick = () => {
+            const card = document.getElementById('editCard');
+            card.style.display = card.style.display === 'none' ? 'block' : 'none';
+        };
+        document.getElementById('cancelBtn').onclick = () => { document.getElementById('editCard').style.display = 'none'; };
+        document.getElementById('saveBtn').onclick = async () => {
+            const name = document.getElementById('editName').value.trim();
+            const bio = document.getElementById('editBio').value.trim();
+            if (!name) return alert('Имя не может быть пустым');
+            const { error } = await supabaseClient.from('users').update({ username: name, bio: bio }).eq('id', currentUser.id);
+            if (error) alert('Ошибка: ' + error.message);
+            else {
+                document.getElementById('editCard').style.display = 'none';
+                loadProfile();
+            }
+        };
+
+        // ===== СТАТИСТИКА =====
+        async function loadStats() {
+            const { data: posts } = await supabaseClient.from('posts').select('id').eq('user_id', currentUser.id);
+            const postCount = posts ? posts.length : 0;
+            document.getElementById('statPosts').textContent = postCount;
+
+            let likesCount = 0;
+            if (postCount > 0) {
+                const ids = posts.map(p => p.id);
+                const { count } = await supabaseClient.from('likes').select('*', { count: 'exact', head: true }).in('post_id', ids);
+                likesCount = count || 0;
+            }
+            document.getElementById('statLikes').textContent = likesCount;
+        }
+
+        // ===== СЕТКА ПОСТОВ =====
+        async function loadMyPosts() {
+            const grid = document.getElementById('postsGrid');
+            const { data } = await supabaseClient.from('posts').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+            
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:20px;">Публикаций пока нет 🌙</div>';
+                return;
+            }
+
+            grid.innerHTML = data.map(p => {
+                if (p.image_url) return `<div class="grid-tile" style="background-image:url('${p.image_url}')" title="${escapeHtml(p.content)}"></div>`;
+                if (p.media_url) return `<div class="grid-tile" title="${escapeHtml(p.content)}">🎬</div>`;
+                return `<div class="grid-tile text-tile">${escapeHtml(p.content.slice(0, 40))}</div>`;
+            }).join('');
+        }
+
+        init();
+    </script>
+</body>
+</html>
