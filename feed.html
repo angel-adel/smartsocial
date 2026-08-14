@@ -92,6 +92,11 @@
     <header>
         <div class="logo" onclick="location.reload()">Smart Social</div>
         <div class="controls">
+            <div class="controls">
+    <!-- ВОТ ЭТА КНОПКА -->
+    <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
+        <span id="headerAvatar">👤</span>
+    </button>
             <select id="langSelect">
                 <option value="ru">🇷 RU</option><option value="uk">🇺 UA</option><option value="en">🇬🇧 EN</option><option value="es">🇪 ES</option><option value="de">🇩 DE</option>
             </select>
@@ -154,6 +159,11 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
+            // Подтягиваем аватарку в шапку
+const { data: u } = await supabaseClient.from('users').select('avatar_url').eq('id', currentUser.id).single();
+if (u && u.avatar_url) {
+    document.getElementById('headerAvatar').innerHTML = `<img src="${u.avatar_url}">`;
+}
             checkNightMode();
             checkDailyLimit();
             loadPosts();
