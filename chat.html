@@ -166,7 +166,38 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
-            loadConversations();
+
+            // 1. Проверяем, перешли ли мы из профиля с конкретным пользователем
+            const chatPartnerId = localStorage.getItem('chatPartnerId');
+
+            if (chatPartnerId) {
+                // Сразу очищаем, чтобы при обновлении страницы чат не открывался снова
+                localStorage.removeItem('chatPartnerId');
+
+                // 2. Загружаем данные этого пользователя из БД
+                const { data: partner } = await supabaseClient
+                    .from('users')
+                    .select('id, username, avatar_url')
+                    .eq('id', chatPartnerId)
+                    .single();
+
+                if (partner) {
+                    // 3. Сохраняем в наш локальный кэш, чтобы openChat мог взять оттуда имя и аватар
+                    partnersData[partner.id] = partner; 
+                    
+                    // 4. Сначала загружаем список диалогов (чтобы левая панель отрисовалась)
+                    await loadConversations();
+                    
+                    // 5. И сразу принудительно открываем окно чата с этим пользователем
+                    openChat(partner.id);
+                } else {
+                    // Если вдруг пользователь не найден, просто грузим список как обычно
+                    loadConversations();
+                }
+            } else {
+                // Обычный вход в чат (без параметра из профиля)
+                loadConversations();
+            }
         }
 
         async function loadConversations() {
