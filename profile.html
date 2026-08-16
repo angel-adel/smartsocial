@@ -194,26 +194,27 @@
 
             // 6. УПРАВЛЕНИЕ КНОПКАМИ
             if (isGuest) {
-                // === УМНАЯ ЗАПИСЬ ГОСТЯ (UPSERT) ===
-const { data, error } = await supabaseClient
+// === УМНАЯ ЗАПИСЬ ГОСТЯ (UPSERT) ===
+const { error } = await supabaseClient
     .from('profile_visits')
     .upsert(
         { 
             host_id: targetUserId, 
             visitor_id: currentUser.id,
             is_read: false,
-            visited_at: new Date().toISOString() // Обновляем время на "прямо сейчас"
+            visited_at: new Date().toISOString() 
         },
         { 
-            onConflict: 'host_id,visitor_id' // Ключевая магия: если такая пара уже есть, обновляем её
+            onConflict: 'host_id,visitor_id' 
         }
-    )
-    .select();
+    ); 
+    // Мы убрали .select() в конце. Теперь базе не нужно проверять права на ЧТЕНИЕ, 
+    // только на ВСТАВКУ или ОБНОВЛЕНИЕ, которые мы уже разрешили.
 
 if (error) {
     console.error('❌ Ошибка при записи гостя:', error.message);
 } else {
-    console.log('✅ Визит успешно записан или обновлен!', data);
+    console.log('✅ Визит успешно записан или обновлен!');
 }
 // ==========================================
 
