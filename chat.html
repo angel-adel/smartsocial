@@ -99,13 +99,56 @@
             .conversations-list { width: 100%; max-height: 200px; }
             .chat-window { min-height: 400px; }
         }
+                /* === СТИЛИ ДЛЯ БУРГЕР-МЕНЮ И БЕЙДЖЕЙ === */
+        
+        /* Красный кружок счетчика */
+        .badge { 
+            background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; 
+            border-radius: 10px; margin-left: 4px; font-weight: bold; 
+            display: none; /* Скрыт по умолчанию */
+        }
+        .badge.show { display: inline-block; } /* Показываем, если есть цифра */
+
+        /* Кнопка Бургера (скрыта на ПК) */
+        .burger-btn { 
+            display: none; background: none; border: none; font-size: 24px; 
+            cursor: pointer; color: var(--text-primary); padding: 0 10px; 
+        }
+
+        /* АДАПТИВ ДЛЯ МОБИЛЬНЫХ (экраны меньше 768px) */
+        @media (max-width: 768px) {
+            .burger-btn { display: block; } /* Показываем бургер */
+            
+            .controls {
+                display: none; /* Скрываем меню по умолчанию */
+                position: absolute;
+                top: 100%; /* Сразу под шапкой */
+                left: 0; right: 0;
+                background: var(--bg-secondary);
+                flex-direction: column;
+                padding: 15px;
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 4px 12px var(--shadow);
+                z-index: 99;
+            }
+            
+            .controls.active { display: flex; } /* Показываем при клике на бургер */
+            
+            /* Растягиваем кнопки на всю ширину в мобильном меню */
+            .controls a, .controls button, .controls select { 
+                width: 100%; margin: 5px 0; text-align: center; 
+            }
+        }
     </style>
 </head>
 <body>
-        <header>
+            <header>
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
-        <div class="controls">
-            <!-- Переключатель языка -->
+        
+        <!-- Кнопка Бургера (появится только на телефоне) -->
+        <button class="burger-btn" id="burgerBtn">☰</button>
+
+        <div class="controls" id="navControls">
             <select id="langSelect">
                 <option value="ru">🇷🇺 RU</option>
                 <option value="uk">🇺🇦 UA</option>
@@ -114,20 +157,26 @@
                 <option value="de">🇩🇪 DE</option>
             </select>
 
-            <!-- Кнопка профиля -->
             <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
                 <span id="headerAvatar">👤</span>
             </button>
 
-            <!-- Навигация с data-i18n -->
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
-            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">
-                👀 Гости <span id="guestBadge" style="background:red; color:white; border-radius:10px; padding:2px 6px; font-size:10px; display:none;">0</span>
+            
+            <!-- Добавили span с id="chatBadge" -->
+            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">
+                💬 Чат <span id="chatBadge" class="badge">0</span>
             </a>
+            
             <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
+            
+            <!-- Добавили span с id="guestBadge" -->
+            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">
+                👀 Гости <span id="guestBadge" class="badge">0</span>
+            </a>
+            
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
@@ -155,6 +204,53 @@
     <button class="theme-toggle" id="themeToggle">🌙</button>
 
     <script>
+                // === ЛОГИКА БУРГЕР-МЕНЮ ===
+        const burgerBtn = document.getElementById('burgerBtn');
+        const navControls = document.getElementById('navControls');
+        
+        if (burgerBtn && navControls) {
+            // Открыть/закрыть меню
+            burgerBtn.onclick = () => navControls.classList.toggle('active');
+            
+            // Автоматически закрывать меню при клике на любую ссылку
+            navControls.querySelectorAll('a').forEach(link => {
+                link.onclick = () => navControls.classList.remove('active');
+            });
+        }
+
+        // === ЛОГИКА КРАСНЫХ СЧЕТЧИКОВ (БЕЙДЖЕЙ) ===
+        async function updateBadges() {
+            if (!currentUser) return;
+
+            // 1. Счетчик непрочитанных гостей
+            const { count: guestCount } = await supabaseClient
+                .from('profile_visits')
+                .select('*', { count: 'exact', head: true })
+                .eq('host_id', currentUser.id)
+                .eq('is_read', false);
+
+            const gBadge = document.getElementById('guestBadge');
+            if (gBadge) {
+                gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
+                if (guestCount > 0) gBadge.classList.add('show'); 
+                else gBadge.classList.remove('show');
+            }
+
+            // 2. Счетчик непрочитанных сообщений
+            const { count: msgCount } = await supabaseClient
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('receiver_id', currentUser.id)
+                .eq('is_read', false);
+
+            const cBadge = document.getElementById('chatBadge');
+            if (cBadge) {
+                cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
+                if (msgCount > 0) cBadge.classList.add('show'); 
+                else cBadge.classList.remove('show');
+            }
+        }
+        
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null;
