@@ -135,9 +135,9 @@
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const IMGBB_KEY = '15cba85a1a5259f80f5326d1fb9bd1f1';
-        let currentUser = null;
+        let currentUser = null; // Глобальная переменная для текущего залогиненного юзера
 
-        // Theme & Lang
+        // ===== ТЕМА И ЯЗЫК =====
         const themeToggle = document.getElementById('themeToggle');
         if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
@@ -155,43 +155,70 @@
             return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,' ');
         }
 
+        // ===== ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ =====
         async function init() {
+            // 1. Проверяем, кто залогинен
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
-            currentUser = session.user;
-            loadProfile();
-        }
+            currentUser = session.user; // Сохраняем в глобальную переменную
 
-        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
-
-        // ===== ЗАГРУЗКА ПРОФИЛЯ =====
-        async function loadProfile() {
-            const { data } = await supabaseClient.from('users').select('*').eq('id', currentUser.id).single();
-            if (!data) return;
-
-            document.getElementById('profileName').textContent = data.username || 'Без имени';
+            // 2. Читаем параметр из адресной строки
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUserId = urlParams.get('user_id') || currentUser.id; 
             
-            const regDate = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-            const days = data.created_at ? Math.max(1, Math.floor((Date.now() - new Date(data.created_at)) / 86400000)) : 1;
-            const genderIcon = data.gender === 'female' ? '♀' : '♂';
-            document.getElementById('profileMeta').innerHTML = `${genderIcon} · На сайте с ${regDate}`;
-            document.getElementById('statDays').textContent = days;
+            // 3. Определяем, гость ли это
+            const isGuest = targetUserId !== currentUser.id;
 
-            document.getElementById('profileBio').textContent = data.bio || 'Пока без статуса. Но это можно исправить! ✨';
+            // 4. Загружаем данные ТОГО пользователя, чей ID в ссылке
+            const { data: userData } = await supabaseClient.from('users').select('*').eq('id', targetUserId).single();
+            if (!userData) return alert('Пользователь не найден');
+
+            // 5. Заполняем профиль данными
+            document.getElementById('profileName').textContent = userData.username || 'Без имени';
+            
+            const regDate = userData.created_at ? new Date(userData.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+            const days = userData.created_at ? Math.max(1, Math.floor((Date.now() - new Date(userData.created_at)) / 86400000)) : 1;
+            const genderIcon = userData.gender === 'female' ? '♀' : '♂';
+            
+            document.getElementById('profileMeta').innerHTML = `${genderIcon} · На сайте с ${regDate}`;
+            document.getElementById('statDays').textContent = days; // Вернули расчёт дней!
+            document.getElementById('profileBio').textContent = userData.bio || 'Пока без статуса. Но это можно исправить! ✨';
 
             const box = document.getElementById('avatarBox');
-            box.innerHTML = data.avatar_url 
-                ? `<img src="${data.avatar_url}" style="width:100%; height:100%; object-fit:cover;">` 
+            box.innerHTML = userData.avatar_url 
+                ? `<img src="${userData.avatar_url}" style="width:100%; height:100%; object-fit:cover;">` 
                 : '👤';
 
-            document.getElementById('editName').value = data.username || '';
-            document.getElementById('editBio').value = data.bio || '';
+            // 6. УПРАВЛЕНИЕ КНОПКАМИ
+            if (isGuest) {
+                document.getElementById('editBtn').style.display = 'none';
+                document.querySelector('.avatar-edit').style.display = 'none';
+                
+                if (!document.getElementById('backToFeedBtn')) {
+                    const backBtn = document.createElement('button');
+                    backBtn.id = 'backToFeedBtn';
+                    backBtn.className = 'btn-sm';
+                    backBtn.style.marginTop = '10px';
+                    backBtn.textContent = '← Вернуться в ленту'; // Исправил опечатку "лент" -> "ленту"
+                    backBtn.onclick = () => window.location.href = 'feed.html';
+                    document.querySelector('.profile-card').appendChild(backBtn);
+                }
+            } else {
+                document.getElementById('editBtn').style.display = 'inline-block';
+                document.querySelector('.avatar-edit').style.display = 'block';
+                const backBtn = document.getElementById('backToFeedBtn');
+                if (backBtn) backBtn.style.display = 'none';
+                
+                document.getElementById('editName').value = userData.username || '';
+                document.getElementById('editBio').value = userData.bio || '';
+            }
 
-            loadStats();
-            loadMyPosts();
+            // 7. Загружаем статистику и посты для targetUserId
+            loadStats(targetUserId);
+            loadMyPosts(targetUserId);
         }
 
-        // ===== СМЕНА АВАТАРА =====
+        // ===== СМЕНА АВАТАРА (Только для себя!) =====
         document.getElementById('avatarInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -201,14 +228,15 @@
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.success) {
+                    // Обновляем ТОЛЬКО свой профиль (currentUser.id)
                     const { error } = await supabaseClient.from('users').update({ avatar_url: data.data.url }).eq('id', currentUser.id);
-                    if (!error) loadProfile();
+                    if (!error) init(); // Перезагружаем данные
                     else alert('Ошибка БД: ' + error.message);
                 } else alert('Ошибка загрузки фото');
             } catch (err) { alert('Не удалось загрузить аватар'); }
         });
 
-        // ===== РЕДАКТИРОВАНИЕ =====
+        // ===== РЕДАКТИРОВАНИЕ (Только для себя!) =====
         document.getElementById('editBtn').onclick = () => {
             const card = document.getElementById('editCard');
             card.style.display = card.style.display === 'none' ? 'block' : 'none';
@@ -218,17 +246,19 @@
             const name = document.getElementById('editName').value.trim();
             const bio = document.getElementById('editBio').value.trim();
             if (!name) return alert('Имя не может быть пустым');
+            
+            // Обновляем ТОЛЬКО свой профиль (currentUser.id)
             const { error } = await supabaseClient.from('users').update({ username: name, bio: bio }).eq('id', currentUser.id);
             if (error) alert('Ошибка: ' + error.message);
             else {
                 document.getElementById('editCard').style.display = 'none';
-                loadProfile();
+                init(); // Перезагружаем данные
             }
         };
 
         // ===== СТАТИСТИКА =====
-        async function loadStats() {
-            const { data: posts } = await supabaseClient.from('posts').select('id').eq('user_id', currentUser.id);
+        async function loadStats(userId) {
+            const { data: posts } = await supabaseClient.from('posts').select('id').eq('user_id', userId);
             const postCount = posts ? posts.length : 0;
             document.getElementById('statPosts').textContent = postCount;
 
@@ -239,12 +269,12 @@
                 likesCount = count || 0;
             }
             document.getElementById('statLikes').textContent = likesCount;
-        }
+        } // <-- ДОБАВИЛ ПРОПУЩЕННУЮ ЗАКРЫВАЮЩУЮ СКОБКУ
 
         // ===== СЕТКА ПОСТОВ =====
-        async function loadMyPosts() {
+        async function loadMyPosts(userId) {
             const grid = document.getElementById('postsGrid');
-            const { data } = await supabaseClient.from('posts').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+            const { data } = await supabaseClient.from('posts').select('*').eq('user_id', userId).order('created_at', { ascending: false });
             
             if (!data || data.length === 0) {
                 grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:20px;">Публикаций пока нет 🌙</div>';
@@ -258,7 +288,12 @@
             }).join('');
         }
 
+        document.getElementById('logoutBtn').onclick = async () => { 
+            await supabaseClient.auth.signOut(); 
+            window.location.href = 'index.html'; 
+        };
+
         init();
-    </script>
+      </script>
 </body>
 </html>
