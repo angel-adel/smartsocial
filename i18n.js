@@ -1,135 +1,124 @@
-// i18n.js — Мультиязычность Smart Social
-const translations = {
-    ru: {
-        pageTitle: 'Вход | Smart Social',
-        title: '🔐 Smart Social',
-        subtitle: 'Войдите или создайте аккаунт. Если email не зарегистрирован, он создастся автоматически.',
-        usernameLabel: 'Имя пользователя',
-        usernamePlaceholder: 'Введите имя',
-        passwordLabel: 'Пароль',
-        passwordPlaceholder: 'Минимум 4 символа',
-        genderLabel: 'Пол',
-        male: 'Мужской',
-        female: 'Женский',
-        submitBtn: 'Войти / Зарегистрироваться',
-        processing: 'Обработка...',
-        forgotPassword: '📧 Забыли пароль?',
-        aboutLink: '← О сайте',
-        consoleTitle: '💻 Системный журнал',
-        waiting: '⏳ Ожидание действий...',
-        chatGreeting: 'Привет! Если не получается войти, проверь почту и пароль. 👋'
+// 1. СЛОВАРЬ ПЕРЕВОДОВ
+const i18n_dict = {
+    ru: { 
+        nav_feed: "📰 Лента", nav_search: " Поиск", nav_chat: "💬 Чат", 
+        nav_guests: "👀 Гости", nav_friends: "👥 Друзья", nav_about: "ℹ️ О сайте", nav_logout: "Выйти",
+        profile_edit: "✏️ Редактировать профиль", profile_save: "Сохранить", profile_cancel: "Отмена",
+        profile_posts: "📁 Мои публикации", profile_no_posts: "Публикаций пока нет ",
+        profile_days: "дней с нами", profile_posts_count: "постов", profile_likes_count: "лайков собрано",
+        btn_add_friend: "➕ Добавить в друзья", btn_subscribed: "✓ Вы подписаны", 
+        btn_pending: "⏳ Ожидает подтверждения", btn_accepted: " В друзьях", btn_accept_req: "✅ Принять заявку",
+        btn_write: "💬 Написать", btn_back: "← Вернуться в ленту",
+        guests_title: "👀 Мои гости", guests_empty: "Пока никто не заходил в гости 🌙",
+        chat_placeholder: "Написать сообщение...", chat_empty: "Выберите диалог слева 💬",
+        search_placeholder: "Поиск по имени или статусу...", search_empty: "Введите минимум 2 символа ✏️",
+        search_not_found: "Никого не найдено 😔",
+        friends_title: "👥 Мои друзья", friends_empty: "У тебя пока нет друзей 🔍",
+        req_title: "Заявки в друзья", req_empty: "Нет новых заявок 🌙",
+        btn_delete: "Удалить", btn_accept: "Принять", btn_reject: "Отклонить"
     },
-    en: {
-        pageTitle: 'Login | Smart Social',
-        title: '🔐 Smart Social',
-        subtitle: 'Sign in or create an account. If the email is not registered, it will be created automatically.',
-        usernameLabel: 'Username',
-        usernamePlaceholder: 'Enter username',
-        passwordLabel: 'Password',
-        passwordPlaceholder: 'At least 4 characters',
-        genderLabel: 'Gender',
-        male: 'Male',
-        female: 'Female',
-        submitBtn: 'Sign In / Register',
-        processing: 'Processing...',
-        forgotPassword: '📧 Forgot password?',
-        aboutLink: '← About',
-        consoleTitle: '💻 System Log',
-        waiting: '⏳ Waiting for actions...',
-        chatGreeting: 'Hi! If you can\'t log in, check your email and password. 👋'
+    en: { 
+        nav_feed: "📰 Feed", nav_search: "🔍 Search", nav_chat: "💬 Chat", 
+        nav_guests: "👀 Guests", nav_friends: " Friends", nav_about: "ℹ️ About", nav_logout: "Logout",
+        profile_edit: "✏️ Edit profile", profile_save: "Save", profile_cancel: "Cancel",
+        profile_posts: "📁 My posts", profile_no_posts: "No posts yet 🌙",
+        profile_days: "days with us", profile_posts_count: "posts", profile_likes_count: "likes collected",
+        btn_add_friend: "➕ Add friend", btn_subscribed: "✓ Subscribed", 
+        btn_pending: "⏳ Pending", btn_accepted: " Friends", btn_accept_req: "✅ Accept request",
+        btn_write: "💬 Message", btn_back: "← Back to feed",
+        guests_title: "👀 My guests", guests_empty: "No guests yet 🌙",
+        chat_placeholder: "Type a message...", chat_empty: "Select a chat 💬",
+        search_placeholder: "Search by name or status...", search_empty: "Enter at least 2 chars ✏️",
+        search_not_found: "Nobody found 😔",
+        friends_title: "👥 My friends", friends_empty: "No friends yet 🔍",
+        req_title: "Friend requests", req_empty: "No new requests 🌙",
+        btn_delete: "Delete", btn_accept: "Accept", btn_reject: "Reject"
     },
-    es: {
-        pageTitle: 'Entrada | Smart Social',
-        title: '🔐 Smart Social',
-        subtitle: 'Inicia sesión o crea una cuenta. Si el correo no está registrado, se creará automáticamente.',
-        usernameLabel: 'Nombre de usuario',
-        usernamePlaceholder: 'Ingresa nombre',
-        passwordLabel: 'Contraseña',
-        passwordPlaceholder: 'Mínimo 4 caracteres',
-        genderLabel: 'Género',
-        male: 'Masculino',        female: 'Femenino',
-        submitBtn: 'Entrar / Registrarse',
-        processing: 'Procesando...',
-        forgotPassword: '📧 ¿Olvidaste la contraseña?',
-        aboutLink: '← Acerca de',
-        consoleTitle: '💻 Registro del sistema',
-        waiting: '⏳ Esperando acciones...',
-        chatGreeting: '¡Hola! Si no puedes entrar, revisa tu correo y contraseña. 👋'
+    uk: { 
+        nav_feed: "📰 Стрічка", nav_search: "🔍 Пошук", nav_chat: "💬 Чат", 
+        nav_guests: "👀 Гості", nav_friends: "👥 Друзі", nav_about: "ℹ️ Про сайт", nav_logout: "Вийти",
+        profile_edit: "✏️ Редагувати профіль", profile_save: "Зберегти", profile_cancel: "Скасувати",
+        profile_posts: "📁 Мої публікації", profile_no_posts: "Публікацій поки що немає 🌙",
+        profile_days: "днів з нами", profile_posts_count: "постів", profile_likes_count: "лайків зібрано",
+        btn_add_friend: "➕ Додати в друзі", btn_subscribed: "✓ Ви підписані", 
+        btn_pending: "⏳ Очікує підтвердження", btn_accepted: "👥 У друзях", btn_accept_req: "✅ Прийняти заявку",
+        btn_write: "💬 Написати", btn_back: "← Повернутися до стрічки",
+        guests_title: "👀 Мої гості", guests_empty: "Поки що ніхто не заходив 🌙",
+        chat_placeholder: "Написати повідомлення...", chat_empty: "Оберіть діалог зліва ",
+        search_placeholder: "Пошук за ім'ям або статусом...", search_empty: "Введіть мінімум 2 символи ✏️",
+        search_not_found: "Нікого не знайдено 😔",
+        friends_title: "👥 Мої друзі", friends_empty: "У тебе поки що немає друзів 🔍",
+        req_title: "Заявки в друзі", req_empty: "Немає нових заявок 🌙",
+        btn_delete: "Видалити", btn_accept: "Прийняти", btn_reject: "Відхилити"
     },
-    uk: {
-        pageTitle: 'Вхід | Smart Social',
-        title: '🔐 Smart Social',
-        subtitle: 'Увійдіть або створіть акаунт. Якщо email не зареєстровано, він створиться автоматично.',
-        usernameLabel: "Ім'я користувача",
-        usernamePlaceholder: "Введіть ім'я",
-        passwordLabel: 'Пароль',
-        passwordPlaceholder: 'Мінімум 4 символи',
-        genderLabel: 'Стать',
-        male: 'Чоловіча',
-        female: 'Жіноча',
-        submitBtn: 'Увійти / Зареєструватися',
-        processing: 'Обробка...',
-        forgotPassword: '📧 Забули пароль?',
-        aboutLink: '← Про сайт',
-        consoleTitle: '💻 Системний журнал',
-        waiting: '⏳ Очікування дій...',
-        chatGreeting: 'Привіт! Якщо не вдається увійти, перевір пошту та пароль. 👋'
+    es: { 
+        nav_feed: "📰 Inicio", nav_search: "🔍 Buscar", nav_chat: "💬 Chat", 
+        nav_guests: "👀 Visitas", nav_friends: "👥 Amigos", nav_about: "ℹ️ Acerca de", nav_logout: "Salir",
+        profile_edit: "✏️ Editar perfil", profile_save: "Guardar", profile_cancel: "Cancelar",
+        profile_posts: " Mis publicaciones", profile_no_posts: "Aún no hay publicaciones 🌙",
+        profile_days: "días con nosotros", profile_posts_count: "publicaciones", profile_likes_count: "me gusta",
+        btn_add_friend: "➕ Añadir amigo", btn_subscribed: "✓ Suscrito", 
+        btn_pending: "⏳ Pendiente", btn_accepted: " Amigos", btn_accept_req: "✅ Aceptar solicitud",
+        btn_write: "💬 Mensaje", btn_back: "← Volver al inicio",
+        guests_title: "👀 Mis visitas", guests_empty: "Aún nadie te ha visitado 🌙",
+        chat_placeholder: "Escribe un mensaje...", chat_empty: "Selecciona un chat 💬",
+        search_placeholder: "Buscar por nombre o estado...", search_empty: "Introduce al menos 2 caracteres ✏️",
+        search_not_found: "Nadie encontrado 😔",
+        friends_title: "👥 Mis amigos", friends_empty: "Aún no tienes amigos 🔍",
+        req_title: "Solicitudes de amistad", req_empty: "No hay nuevas solicitudes 🌙",
+        btn_delete: "Eliminar", btn_accept: "Aceptar", btn_reject: "Rechazar"
     },
-    de: {
-        pageTitle: 'Anmeldung | Smart Social',
-        title: '🔐 Smart Social',
-        subtitle: 'Einloggen oder Konto erstellen. Wenn die E-Mail nicht registriert ist, wird sie automatisch erstellt.',
-        usernameLabel: 'Benutzername',
-        usernamePlaceholder: 'Name eingeben',
-        passwordLabel: 'Passwort',
-        passwordPlaceholder: 'Mindestens 4 Zeichen',
-        genderLabel: 'Geschlecht',
-        male: 'Männlich',
-        female: 'Weiblich',
-        submitBtn: 'Einloggen / Registrieren',
-        processing: 'Verarbeitung...',
-        forgotPassword: '📧 Passwort vergessen?',
-        aboutLink: '← Über uns',
-        consoleTitle: '💻 Systemprotokoll',
-        waiting: '⏳ Warte auf Aktionen...',
-        chatGreeting: 'Hallo! Wenn der Login nicht klappt, überprüfe E-Mail und Passwort. 👋'
+    de: { 
+        nav_feed: " Feed", nav_search: "🔍 Suche", nav_chat: "💬 Chat", 
+        nav_guests: "👀 Gäste", nav_friends: "👥 Freunde", nav_about: "️ Über uns", nav_logout: "Abmelden",
+        profile_edit: "✏️ Profil bearbeiten", profile_save: "Speichern", profile_cancel: "Abbrechen",
+        profile_posts: "📁 Meine Beiträge", profile_no_posts: "Noch keine Beiträge 🌙",
+        profile_days: "Tage bei uns", profile_posts_count: "Beiträge", profile_likes_count: "Likes erhalten",
+        btn_add_friend: "➕ Freund hinzufügen", btn_subscribed: "✓ Abonniert", 
+        btn_pending: "⏳ Ausstehend", btn_accepted: "👥 Freunde", btn_accept_req: "✅ Anfrage annehmen",
+        btn_write: "💬 Nachricht", btn_back: "← Zurück zum Feed",
+        guests_title: " Meine Gäste", guests_empty: "Noch keine Gäste 🌙",
+        chat_placeholder: "Nachricht schreiben...", chat_empty: "Wähle einen Chat 💬",
+        search_placeholder: "Suche nach Name oder Status...", search_empty: "Mindestens 2 Zeichen eingeben ✏️",
+        search_not_found: "Niemand gefunden 😔",
+        friends_title: "👥 Meine Freunde", friends_empty: "Du hast noch keine Freunde 🔍",
+        req_title: "Freundschaftsanfragen", req_empty: "Keine neuen Anfragen 🌙",
+        btn_delete: "Löschen", btn_accept: "Annehmen", btn_reject: "Ablehnen"
     }
 };
 
-function applyLanguage(lang) {    const t = translations[lang];
-    if (!t) return;
-
-    document.title = t.pageTitle;
-    
-    const map = {
-        '.auth-header h1': t.title,
-        '.auth-header p': t.subtitle,
-        'label[for="username"]': t.usernameLabel,
-        'label[for="password"]': t.passwordLabel,
-        '.gender-label': t.genderLabel,
-        'label[for="male"]': t.male,
-        'label[for="female"]': t.female,
-        '.console-header': t.consoleTitle,
-        '.footer-link a': t.forgotPassword,
-        '.about-link': t.aboutLink
-    };
-
-    for (const [selector, text] of Object.entries(map)) {
-        const el = document.querySelector(selector);
-        if (el) el.textContent = text;
-    }
-
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
-    if (passwordInput) passwordInput.placeholder = t.passwordPlaceholder;
-
-    const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn && !submitBtn.disabled) {
-        submitBtn.textContent = t.submitBtn;
-    }
-
-    // Обновляем приветствие чата, если бот уже отображается
-    const chatText = document.querySelector('.chat-message-text');
-    if (chatText) chatText.textContent = t.chatGreeting;
+// 2. ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ (для использования внутри JS-кода)
+function t(key) {
+    const lang = localStorage.getItem('lang') || 'ru';
+    // Возвращаем перевод, если нет — русский, если нет — сам ключ
+    return i18n_dict[lang]?.[key] || i18n_dict['ru'][key] || key; 
 }
+
+// 3. ГЛАВНАЯ ФУНКЦИЯ ПРИМЕНЕНИЯ (для статического HTML)
+function applyTranslations() {
+    const lang = localStorage.getItem('lang') || 'ru';
+    
+    // Меняем текст у всех элементов с атрибутом data-i18n
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = t(key);
+    });
+
+    // Синхронизируем выпадающий список, если он есть на странице
+    const select = document.getElementById('langSelect');
+    if (select) select.value = lang;
+}
+
+// 4. АВТОМАТИЧЕСКИЙ ЗАПУСК
+document.addEventListener('DOMContentLoaded', () => {
+    applyTranslations(); // Применяем язык при загрузке страницы
+    
+    // Вешаем слушатель на переключатель языка
+    const select = document.getElementById('langSelect');
+    if (select) {
+        select.addEventListener('change', (e) => {
+            localStorage.setItem('lang', e.target.value);
+            applyTranslations(); // Мгновенно меняем текст без перезагрузки
+        });
+    }
+});
