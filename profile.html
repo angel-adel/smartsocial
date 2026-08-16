@@ -236,7 +236,7 @@
                 // Проверяем статус дружбы
                 const { data: friendship } = await supabaseClient
                     .from('friendships')
-                    .select('status, requester_id')
+                    .select('id, status, requester_id')
                     .or(`and(requester_id.eq.${currentUser.id},addressee_id.eq.${targetUserId}),and(requester_id.eq.${targetUserId},addressee_id.eq.${currentUser.id})`)
                     .single();
 
@@ -279,16 +279,44 @@
                             friendBtn.style.opacity = '0.6';
                         }
                     };
-                } else if (friendship.status === 'pending') {
-                    friendBtn.textContent = (friendship.requester_id === currentUser.id) ? '✓ Вы подписаны' : '⏳ Ожидает подтверждения';
-                    friendBtn.disabled = true;
-                    friendBtn.style.opacity = '0.6';
+                                } else if (friendship.status === 'pending') {
+                    if (friendship.requester_id === currentUser.id) {
+                        // МЫ отправили заявку
+                        friendBtn.textContent = '✓ Вы подписаны';
+                        friendBtn.disabled = true;
+                        friendBtn.style.opacity = '0.6';
+                    } else {
+                        // НАМ отправили заявку, мы можем её принять
+                        friendBtn.textContent = '✅ Принять заявку';
+                        friendBtn.style.background = 'var(--accent)';
+                        friendBtn.style.color = 'white';
+                        friendBtn.style.border = 'none';
+                        
+                        friendBtn.onclick = async () => {
+                            // Обновляем статус на 'accepted' по ID записи о дружбе
+                            const { error } = await supabaseClient
+                                .from('friendships')
+                                .update({ status: 'accepted' })
+                                .eq('id', friendship.id);
+                            
+                            if (!error) {
+                                friendBtn.textContent = '👥 В друзьях';
+                                friendBtn.disabled = true;
+                                friendBtn.style.opacity = '0.6';
+                                friendBtn.style.background = 'transparent';
+                                friendBtn.style.color = 'var(--text-secondary)';
+                                friendBtn.style.border = '1px solid var(--border)';
+                            } else {
+                                alert('Ошибка: ' + error.message);
+                            }
+                        };
+                    }
                 } else if (friendship.status === 'accepted') {
+                    // Статус "accepted" для ОБОИХ пользователей
                     friendBtn.textContent = '👥 В друзьях';
                     friendBtn.disabled = true;
                     friendBtn.style.opacity = '0.6';
                 }
-                actionsDiv.appendChild(friendBtn);
 
                 // Кнопка "Назад"
                 const backBtn = document.createElement('button');
