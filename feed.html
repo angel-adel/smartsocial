@@ -4,26 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="./manifest.json">
-        <!-- Favicon для всех браузеров -->
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
-    
-    <!-- Для iPhone/iPad -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Smart Social">
-    
-    <!-- Для Android / PWA -->
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
-    
-    <!-- Цвет вкладки браузера (под твой фиолетовый стиль) -->
     <meta name="theme-color" content="#7c3aed">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Smart Social">
     <title>Лента | Smart Social</title>
+    
     <script src="config.js"></script>
     <script src="i18n.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
@@ -51,17 +46,29 @@
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
         .controls { display: flex; gap: 10px; align-items: center; }
         select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
-        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; }
-        .profile-btn { 
-            width: 36px; height: 36px; border-radius: 50%; 
-            border: 2px solid var(--accent); background: var(--border); 
-            cursor: pointer; overflow: hidden; padding: 0;
-            display: flex; align-items: center; justify-content: center; font-size: 18px; 
-        }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+        .btn-sm:hover { background: var(--border); color: var(--text-primary); }
+        
+        .profile-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); background: var(--border); cursor: pointer; overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
         .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-        .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
+        /* === БУРГЕР И БЕЙДЖИ === */
+        .burger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); padding: 0 10px; }
+        .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
+        .badge.show { display: inline-block; }
 
+        @media (max-width: 768px) {
+            .burger-btn { display: block; }
+            .controls {
+                display: none; position: absolute; top: 100%; left: 0; right: 0;
+                background: var(--bg-secondary); flex-direction: column; padding: 15px;
+                border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 99;
+            }
+            .controls.active { display: flex; }
+            .controls a, .controls button, .controls select { width: 100%; margin: 5px 0; text-align: center; }
+        }
+
+        .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
         .create-post { background: var(--bg-secondary); padding: 20px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 4px 12px var(--shadow); }
         textarea { width: 100%; border: none; resize: none; background: transparent; color: var(--text-primary); font-size: 16px; min-height: 80px; outline: none; margin-bottom: 12px; font-family: inherit; }
         .input-row input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); margin-bottom: 12px; }
@@ -76,28 +83,12 @@
         .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; }
         .avatar img { width: 100%; height: 100%; object-fit: cover; }
         .username { font-weight: 600; font-size: 15px; }
-        
-        /* СТИЛИ ДЛЯ КЛИКАБЕЛЬНОГО АВТОРА */
-        .author-link { 
-            text-decoration: none; 
-            color: inherit; 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            cursor: pointer; 
-            transition: opacity 0.2s;
-        }
+        .author-link { text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: opacity 0.2s; }
         .author-link:hover { opacity: 0.7; }
-        
         .timestamp { font-size: 12px; color: var(--text-secondary); margin-left: auto; }
         
         .post-content { font-size: 16px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 12px; }
-        .post-content.collapsed {
-            display: -webkit-box;
-            -webkit-line-clamp: 5;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
+        .post-content.collapsed { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
         .read-more-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 10px; }
 
         .post-image { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 400px; object-fit: cover; }
@@ -117,93 +108,36 @@
         .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
         .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
-                /* === СТИЛИ ДЛЯ БУРГЕР-МЕНЮ И БЕЙДЖЕЙ === */
-        
-        /* Красный кружок счетчика */
-        .badge { 
-            background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; 
-            border-radius: 10px; margin-left: 4px; font-weight: bold; 
-            display: none; /* Скрыт по умолчанию */
-        }
-        .badge.show { display: inline-block; } /* Показываем, если есть цифра */
-
-        /* Кнопка Бургера (скрыта на ПК) */
-        .burger-btn { 
-            display: none; background: none; border: none; font-size: 24px; 
-            cursor: pointer; color: var(--text-primary); padding: 0 10px; 
-        }
-
-        /* АДАПТИВ ДЛЯ МОБИЛЬНЫХ (экраны меньше 768px) */
-        @media (max-width: 768px) {
-            .burger-btn { display: block; } /* Показываем бургер */
-            
-            .controls {
-                display: none; /* Скрываем меню по умолчанию */
-                position: absolute;
-                top: 100%; /* Сразу под шапкой */
-                left: 0; right: 0;
-                background: var(--bg-secondary);
-                flex-direction: column;
-                padding: 15px;
-                border-bottom: 1px solid var(--border);
-                box-shadow: 0 4px 12px var(--shadow);
-                z-index: 99;
-            }
-            
-            .controls.active { display: flex; } /* Показываем при клике на бургер */
-            
-            /* Растягиваем кнопки на всю ширину в мобильном меню */
-            .controls a, .controls button, .controls select { 
-                width: 100%; margin: 5px 0; text-align: center; 
-            }
-        }
     </style>
 </head>
 <body>
 
-       <header>
+    <header>
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
-        
-        <!-- Кнопка Бургера (появится только на телефоне) -->
         <button class="burger-btn" id="burgerBtn">☰</button>
-
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇷🇺 RU</option>
-                <option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬🇧 EN</option>
-                <option value="es">🇪🇸 ES</option>
-                <option value="de">🇩🇪 DE</option>
+                <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩🇪 DE</option>
             </select>
-
             <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
                 <span id="headerAvatar">👤</span>
             </button>
-
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            
-            <!-- Добавили span с id="chatBadge" -->
-            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">
-                💬 Чат <span id="chatBadge" class="badge">0</span>
-            </a>
-            
+            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат <span id="chatBadge" class="badge">0</span></a>
             <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
-            
-            <!-- Добавили span с id="guestBadge" -->
-            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">
-                👀 Гости <span id="guestBadge" class="badge">0</span>
-            </a>
-            
+            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости <span id="guestBadge" class="badge">0</span></a>
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
+
     <div class="container">
-                <div class="create-post">
-            <textarea id="postContent" placeholder="Что у вас нового?" data-i18n-placeholder="feed_placeholder"></textarea>
+        <div class="create-post">
+            <textarea id="postContent" placeholder="Что у вас нового?"></textarea>
             <div class="input-row">
-                <input type="url" id="postLink" placeholder="Ссылка (YouTube, MP3...)" data-i18n-placeholder="feed_link_placeholder" />
+                <input type="url" id="postLink" placeholder="Ссылка (YouTube, MP3...)" />
             </div>
             <div class="actions">
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -232,64 +166,39 @@
 
     <script>
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
-        
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const IMGBB_KEY = '15cba85a1a5259f80f5326d1fb9bd1f1'; 
         let currentUser = null;
 
-                // === ЛОГИКА БУРГЕР-МЕНЮ ===
+        // === БУРГЕР-МЕНЮ ===
         const burgerBtn = document.getElementById('burgerBtn');
         const navControls = document.getElementById('navControls');
-        
         if (burgerBtn && navControls) {
-            // Открыть/закрыть меню
             burgerBtn.onclick = () => navControls.classList.toggle('active');
-            
-            // Автоматически закрывать меню при клике на любую ссылку
-            navControls.querySelectorAll('a').forEach(link => {
-                link.onclick = () => navControls.classList.remove('active');
-            });
+            navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
         }
 
-        // === ЛОГИКА КРАСНЫХ СЧЕТЧИКОВ (БЕЙДЖЕЙ) ===
+        // === СЧЕТЧИКИ (БЕЙДЖИ) ===
         async function updateBadges() {
             if (!currentUser) return;
-
-            // 1. Счетчик непрочитанных гостей
-            const { count: guestCount } = await supabaseClient
-                .from('profile_visits')
-                .select('*', { count: 'exact', head: true })
-                .eq('host_id', currentUser.id)
-                .eq('is_read', false);
-
+            const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
             const gBadge = document.getElementById('guestBadge');
             if (gBadge) {
                 gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
-                if (guestCount > 0) gBadge.classList.add('show'); 
-                else gBadge.classList.remove('show');
+                guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show');
             }
 
-            // 2. Счетчик непрочитанных сообщений
-            const { count: msgCount } = await supabaseClient
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('receiver_id', currentUser.id)
-                .eq('is_read', false);
-
+            const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
             const cBadge = document.getElementById('chatBadge');
             if (cBadge) {
                 cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
-                if (msgCount > 0) cBadge.classList.add('show'); 
-                else cBadge.classList.remove('show');
+                msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show');
             }
         }
 
-        // ===== ТЕМА =====
+        // === ТЕМА ===
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { 
-            document.documentElement.setAttribute('data-theme', 'dark'); 
-            themeToggle.textContent = '☀️'; 
-        }
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
@@ -297,195 +206,122 @@
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
-               // ===== ИНИЦИАЛИЗАЦИЯ =====
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
 
-            // Подтягиваем аватарку в шапку
             const { data: u } = await supabaseClient.from('users').select('avatar_url').eq('id', currentUser.id).single();
-            if (u && u.avatar_url) {
-                document.getElementById('headerAvatar').innerHTML = `<img src="${u.avatar_url}">`;
-            }
+            if (u && u.avatar_url) document.getElementById('headerAvatar').innerHTML = `<img src="${u.avatar_url}">`;
 
+            updateBadges(); // Обновляем счетчики
             checkNightMode();
             checkDailyLimit();
             loadPosts();
         }
 
-        // ===== НОЧНОЙ РЕЖИМ =====
         function checkNightMode() {
             const hour = new Date().getHours();
             const btn = document.getElementById('publishBtn');
             const info = document.getElementById('limitInfo');
             if (hour >= 23 || hour < 7) {
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-                btn.textContent = t('feed_night_mode');
-                if (info) info.textContent = t('feed_publish_available');
+                btn.disabled = true; btn.style.opacity = '0.5';
+                btn.textContent = t('feed_night_mode') || 'Ночной режим 🌙';
+                if (info) info.textContent = t('feed_publish_available') || 'Публикация доступна с 07:00 до 23:00';
             }
         }
 
-        // ===== ЛИМИТ ПОСТОВ =====
         async function checkDailyLimit() {
             const today = new Date().toISOString().split('T')[0];
             const { count } = await supabaseClient.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).gte('created_at', today);
             const info = document.getElementById('limitInfo');
             const btn = document.getElementById('publishBtn');
             if (count >= 10) {
-                info.textContent = t('feed_limit_exhausted');
-                info.style.color = 'var(--like-color)';
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
+                info.textContent = t('feed_limit_exhausted') || 'Лимит исчерпан на сегодня ✨';
+                info.style.color = 'var(--like-color)'; btn.disabled = true; btn.style.opacity = '0.5';
             } else {
-                if (btn.textContent !== t('feed_night_mode')) {
-                    info.textContent = t('feed_posts_left') + (10 - count);
+                if (btn.textContent !== (t('feed_night_mode') || 'Ночной режим 🌙')) {
+                    info.textContent = (t('feed_posts_left') || 'Осталось постов сегодня: ') + (10 - count);
                 }
             }
         }
 
-        // ===== ВЫХОД =====
-        document.getElementById('logoutBtn').onclick = async () => { 
-            await supabaseClient.auth.signOut(); 
-            window.location.href = 'index.html'; 
-        };
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
 
-        // ===== ЗАГРУЗКА ФОТО =====
         async function uploadImage(file) {
-            const formData = new FormData();
-            formData.append("image", file);
-            try {
-                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: "POST", body: formData });
-                const data = await res.json();
-                return data.success ? data.data.url : null;
-            } catch (e) { return null; }
+            const formData = new FormData(); formData.append("image", file);
+            try { const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: "POST", body: formData }); const data = await res.json(); return data.success ? data.data.url : null; } 
+            catch (e) { return null; }
         }
 
-                // ===== ПУБЛИКАЦИЯ =====
         document.getElementById('publishBtn').onclick = async () => {
             const hour = new Date().getHours();
-            if (hour >= 23 || hour < 7) {
-                alert(t('feed_night_alert'));
-                return;
-            }
-            
+            if (hour >= 23 || hour < 7) { alert(t('feed_night_alert') || '🌙 Ночной режим...'); return; }
             const content = document.getElementById('postContent').value.trim();
             const link = document.getElementById('postLink').value.trim();
             const file = document.getElementById('imageInput').files[0];
             if (!content && !link && !file) return;
 
-            const btn = document.getElementById('publishBtn');
-            btn.disabled = true; btn.textContent = '...';
+            const btn = document.getElementById('publishBtn'); btn.disabled = true; btn.textContent = '...';
             const imgUrl = file ? await uploadImage(file) : null;
 
-            const { error } = await supabaseClient.from('posts').insert([{ 
-                user_id: currentUser.id, 
-                content, 
-                media_url: link, 
-                image_url: imgUrl 
-            }]);
-            
+            const { error } = await supabaseClient.from('posts').insert([{ user_id: currentUser.id, content, media_url: link, image_url: imgUrl }]);
             if (!error) {
-                document.getElementById('postContent').value = '';
-                document.getElementById('postLink').value = '';
-                document.getElementById('imageInput').value = '';
-                document.getElementById('fileName').textContent = '';
-                checkDailyLimit();
-                loadPosts();
+                document.getElementById('postContent').value = ''; document.getElementById('postLink').value = '';
+                document.getElementById('imageInput').value = ''; document.getElementById('fileName').textContent = '';
+                checkDailyLimit(); loadPosts();
             }
-            btn.disabled = false; 
-            btn.textContent = 'Опубликовать';
-            checkNightMode();
-            checkDailyLimit();
+            btn.disabled = false; btn.textContent = t('feed_publish') || 'Опубликовать';
+            checkNightMode(); checkDailyLimit();
         };
         
-        // ===== ЗАГРУЗКА ЛЕНТЫ =====
         async function loadPosts() {
-            const list = document.getElementById('feedList');
-            list.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
-            
+            const list = document.getElementById('feedList'); list.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
             const { data: posts } = await supabaseClient.from('posts').select('*').order('created_at', { ascending: false });
             if (!posts) return;
             const { data: likes } = await supabaseClient.from('likes').select('post_id, user_id');
             
             const html = await Promise.all(posts.map(async (post) => {
-                // Подтягиваем имя и аватар автора
                 const { data: u } = await supabaseClient.from('users').select('username, avatar_url').eq('id', post.user_id).single();
                 const author = u ? u.username : 'Unknown';
-                const avatarHtml = u && u.avatar_url 
-                    ? `<img src="${u.avatar_url}">` 
-                    : '👤';
-
+                const avatarHtml = u && u.avatar_url ? `<img src="${u.avatar_url}">` : '👤';
                 const isOwner = post.user_id === currentUser.id;
                 const postLikes = likes.filter(l => l.post_id === post.id);
                 const isLiked = postLikes.some(l => l.user_id === currentUser.id);
-
                 const isLong = post.content.length > 300;
                 const contentClass = isLong ? 'post-content collapsed' : 'post-content';
-                const readMoreBtn = isLong ? `<button class="read-more-btn" onclick="toggleReadMore(this)">Читать еще...</button>` : '';
+                const readMoreBtn = isLong ? `<button class="read-more-btn" onclick="toggleReadMore(this)">${t('feed_read_more') || 'Читать еще...'}</button>` : '';
 
-                // Медиа
                 let mediaHtml = '';
                 if (post.image_url) mediaHtml += `<img src="${post.image_url}" class="post-image">`;
                 if (post.media_url) {
-                    const pid = `p-${post.id}`;
-                    let embedHtml = '';
-                    const url = post.media_url;
-
-                    // YouTube
+                    const pid = `p-${post.id}`; let embedHtml = ''; const url = post.media_url;
                     if (url.includes('youtube.com/watch') || url.includes('youtu.be')) {
                         let videoId = url.split('v=')[1] || (url.match(/youtu\.be\/([^?]+)/) || [])[1];
-                        if (videoId) {
-                            videoId = videoId.split('&')[0];
-                            embedHtml = `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
-                        }
-                    } 
-                    // RuTube
-                    else if (url.includes('rutube.ru')) {
+                        if (videoId) { videoId = videoId.split('&')[0]; embedHtml = `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`; }
+                    } else if (url.includes('rutube.ru')) {
                         const match = url.match(/(?:video|embed)\/([a-f0-9]+)/i);
-                        if (match) {
-                            embedHtml = `<iframe src="https://rutube.ru/play/embed/${match[1]}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
-                        } else {
-                            embedHtml = `<iframe src="${url}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
-                        }
-                    } 
-                    // MP3
-                    else if (url.match(/\.(mp3|wav|ogg|m4a)$/i)) {
+                        if (match) embedHtml = `<iframe src="https://rutube.ru/play/embed/${match[1]}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+                        else embedHtml = `<iframe src="${url}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+                    } else if (url.match(/\.(mp3|wav|ogg|m4a)$/i)) {
                         embedHtml = `<div style="padding: 20px; background: #fff; display:flex; align-items:center; justify-content:center; height:100%;"><audio controls src="${url}" style="width: 90%;"></audio></div>`;
-                    } 
-                    // MP4
-                    else if (url.match(/\.(mp4|webm|mov)$/i)) {
+                    } else if (url.match(/\.(mp4|webm|mov)$/i)) {
                         embedHtml = `<video controls src="${url}" style="width:100%; height:100%; object-fit:contain;"></video>`;
-                    } 
-                    // Всё остальное во фрейме
-                    else {
+                    } else {
                         embedHtml = `<iframe src="${url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
                     }
-
-                    mediaHtml += `
-                        <div class="media-box">
-                            <button class="play-btn" onclick="toggleMedia('${pid}', this)">▶ Играть / Показать</button>
-                            <div id="${pid}" class="player-frame">${embedHtml}</div>
-                        </div>
-                    `;
+                    mediaHtml += `<div class="media-box"><button class="play-btn" onclick="toggleMedia('${pid}', this)">${t('feed_play') || '▶ Играть / Показать'}</button><div id="${pid}" class="player-frame">${embedHtml}</div></div>`;
                 }
 
-                return `
-                <div class="feed-item">
+                return `<div class="feed-item">
                     <div class="feed-header">
                         <a href="profile.html?user_id=${post.user_id}" class="author-link">
-                            <div class="avatar">${avatarHtml}</div>
-                            <span class="username">${author}</span>
+                            <div class="avatar">${avatarHtml}</div><span class="username">${author}</span>
                         </a>
                         <span class="timestamp">${new Date(post.created_at).toLocaleString()}</span>
                     </div>
-                    
-                    <!-- ТЕКСТ ПОСТА (ВЕРНУЛИ НА МЕСТО) -->
                     <div class="${contentClass}">${post.content}</div>
-                    
-                    ${readMoreBtn}
-                    ${mediaHtml}
+                    ${readMoreBtn}${mediaHtml}
                     <div class="post-footer">
                         <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}', this)">
                             ${isLiked ? '❤️' : '🤍'} <span>${postLikes.length}</span>
@@ -500,32 +336,19 @@
             list.innerHTML = html.join('');
         }
 
-        // ===== ИНТЕРАКЦИИ =====
         window.toggleReadMore = (btn) => {
             const content = btn.previousElementSibling;
-            if (content.classList.contains('collapsed')) {
-                content.classList.remove('collapsed');
-                btn.textContent = 'Свернуть';
-            } else {
-                content.classList.add('collapsed');
-                btn.textContent = 'Читать еще...';
-            }
+            if (content.classList.contains('collapsed')) { content.classList.remove('collapsed'); btn.textContent = t('feed_collapse') || 'Свернуть'; } 
+            else { content.classList.add('collapsed'); btn.textContent = t('feed_read_more') || 'Читать еще...'; }
         };
 
         window.toggleMedia = (id, btn) => {
             const el = document.getElementById(id);
             if (el.style.display === 'block') {
-                el.style.display = 'none';
-                btn.innerHTML = '▶ Играть / Показать';
+                el.style.display = 'none'; btn.textContent = t('feed_play') || '▶ Играть / Показать';
                 const media = el.querySelector('iframe, audio, video');
-                if (media) { 
-                    if (media.pause) media.pause(); 
-                    if (media.tagName === 'IFRAME') { const s = media.src; media.src = ''; media.src = s; } 
-                }
-            } else {
-                el.style.display = 'block';
-                btn.innerHTML = '⏸ Скрыть';
-            }
+                if (media) { if (media.pause) media.pause(); if (media.tagName === 'IFRAME') { const s = media.src; media.src = ''; media.src = s; } }
+            } else { el.style.display = 'block'; btn.textContent = t('feed_hide') || '⏸ Скрыть'; }
         };
 
         window.toggleLike = async (postId, btn) => {
@@ -535,21 +358,8 @@
             loadPosts();
         };
 
-        window.deletePost = async (id) => { 
-            if (confirm('Удалить?')) { 
-                await supabaseClient.from('posts').delete().eq('id', id); 
-                checkDailyLimit(); 
-                loadPosts(); 
-            } 
-        };
-        
-        window.editPost = async (id, text) => { 
-            const t = prompt('Редактировать:', text); 
-            if (t !== null && t !== text) { 
-                await supabaseClient.from('posts').update({content: t}).eq('id', id); 
-                loadPosts(); 
-            } 
-        };
+        window.deletePost = async (id) => { if (confirm(t('feed_delete_confirm') || 'Удалить?')) { await supabaseClient.from('posts').delete().eq('id', id); checkDailyLimit(); loadPosts(); } };
+        window.editPost = async (id, text) => { const t_text = prompt(t('feed_edit_prompt') || 'Редактировать:', text); if (t_text !== null && t_text !== text) { await supabaseClient.from('posts').update({content: t_text}).eq('id', id); loadPosts(); } };
 
         init();
     </script>
