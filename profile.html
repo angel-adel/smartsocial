@@ -3,24 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <link rel="manifest" href="./manifest.json">
-        <!-- Favicon для всех браузеров -->
+    <title>Профиль | Smart Social</title>
+    
+    <!-- ИКОНКИ И МАНИФЕСТ -->
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
-    
-    <!-- Для iPhone/iPad -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Smart Social">
-    
-    <!-- Для Android / PWA -->
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
-    
-    <!-- Цвет вкладки браузера (под твой фиолетовый стиль) -->
     <meta name="theme-color" content="#7c3aed">
-    <title>Профиль | Smart Social</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Smart Social">
+    <!-- КОНЕЦ ИКОНОК -->
+
     <script src="config.js"></script>
     <script src="i18n.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -48,9 +45,10 @@
 
         header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
-        .controls { display: flex; gap: 10px; align-items: center; }
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
-        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+        .btn-sm:hover { background: var(--border); }
 
         .container { max-width: 600px; margin: 0 auto; padding: 0 16px; }
 
@@ -58,14 +56,15 @@
         .profile-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 28px 20px; text-align: center; box-shadow: 0 4px 12px var(--shadow); margin-top: 20px; }
         .avatar-wrap { position: relative; width: 110px; margin: 0 auto 14px; }
         .avatar-big { width: 110px; height: 110px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 52px; overflow: hidden; border: 3px solid var(--accent); }
+        .avatar-big img { width: 100%; height: 100%; object-fit: cover; }
         .avatar-edit { position: absolute; bottom: 2px; right: 2px; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; border: none; cursor: pointer; font-size: 15px; }
         #profileName { font-size: 22px; margin-bottom: 6px; }
         .profile-meta { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
         .profile-bio { font-size: 15px; margin-bottom: 16px; font-style: italic; }
 
         /* Редактирование */
-        .edit-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px; box-shadow: 0 4px 12px var(--shadow); }
-        .edit-card label { display: block; font-size: 13px; color: var(--text-secondary); margin: 10px 0 6px; }
+        .edit-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px; box-shadow: 0 4px 12px var(--shadow); display: none; }
+        .edit-card label { display: block; font-size: 13px; color: var(--text-secondary); margin: 10px 0 6px; text-align: left; }
         .edit-card input, .edit-card textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; outline: none; }
         .edit-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
         .publish-btn { background: var(--accent); color: white; border: none; padding: 10px 24px; border-radius: 20px; font-weight: 600; cursor: pointer; }
@@ -79,9 +78,11 @@
         /* Сетка постов */
         .section-title { margin: 24px 0 12px; font-size: 17px; }
         .posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .grid-tile { aspect-ratio: 1/1; border-radius: 12px; background-color: var(--bg-secondary); border: 1px solid var(--border); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--text-secondary); overflow: hidden; padding: 6px; text-align: center; }
+        .grid-tile { aspect-ratio: 1/1; border-radius: 12px; background-color: var(--bg-secondary); border: 1px solid var(--border); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--text-secondary); overflow: hidden; padding: 6px; text-align: center; cursor: pointer; }
+        .grid-tile:hover { transform: scale(1.05); }
         .text-tile { font-size: 11px; line-height: 1.3; }
 
+        /* Виджеты */
         .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
         .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
         .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
@@ -94,15 +95,13 @@
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
         <div class="controls">
             <select id="langSelect">
-                <option value="ru">🇷 RU</option><option value="uk">🇺 UA</option><option value="en">🇬🇧 EN</option><option value="es">🇪 ES</option><option value="de">🇩 DE</option>
+                <option value="ru"> RU</option><option value="uk"> UA</option><option value="en">🇧 EN</option><option value="es">🇪 ES</option><option value="de">🇩 DE</option>
             </select>
-            <button class="btn-sm" onclick="location.href='feed.html'">📰 Лента</button>
-            <button class="btn-sm" onclick="location.href='chat.html'"> Сообщения</button>
-               <a href="search.html" class="btn-sm">🔍 Поиск</a>
+            <a href="feed.html" class="btn-sm">📰 Лента</a>
+            <a href="search.html" class="btn-sm">🔍 Поиск</a>
+            <a href="chat.html" class="btn-sm">💬 Чат</a>
+            <a href="guests.html" class="btn-sm">👀 Гости <span id="guestBadge" style="background:red; color:white; border-radius:10px; padding:2px 6px; font-size:10px; display:none;">0</span></a>
             <button class="btn-sm" id="logoutBtn">Выйти</button>
-           <button class="btn-sm" onclick="location.href='guests.html'">
-    👀 Гости <span id="guestBadge" style="background:red; color:white; border-radius:10px; padding:2px 6px; font-size:10px; display:none;">0</span>
-</button>
         </div>
     </header>
 
@@ -110,7 +109,7 @@
         <!-- Карточка профиля -->
         <div class="profile-card">
             <div class="avatar-wrap">
-                <div class="avatar-big" id="avatarBox">👤</div>
+                <div class="avatar-big" id="avatarBox"></div>
                 <button class="avatar-edit" onclick="document.getElementById('avatarInput').click()" title="Сменить аватар">📷</button>
                 <input type="file" id="avatarInput" accept="image/*" style="display:none">
             </div>
@@ -121,11 +120,11 @@
         </div>
 
         <!-- Форма редактирования -->
-        <div class="edit-card" id="editCard" style="display:none;">
+        <div class="edit-card" id="editCard">
             <label>Имя:</label>
             <input id="editName" maxlength="40">
             <label>Статус (о себе):</label>
-            <textarea id="editBio" rows="3" maxlength="150" placeholder="Пара слов о себе... (например: ценитель эстетики)"></textarea>
+            <textarea id="editBio" rows="3" maxlength="150" placeholder="Пара слов о себе..."></textarea>
             <div class="edit-actions">
                 <button class="btn-sm" id="cancelBtn">Отмена</button>
                 <button class="publish-btn" id="saveBtn">Сохранить</button>
@@ -144,58 +143,69 @@
         <div class="posts-grid" id="postsGrid"></div>
     </div>
 
+    <!-- Виджет Ангела-Хранителя и Смена темы -->
     <div class="angel-widget">
         <div class="angel-window" id="angelWindow">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Ангел-Хранитель</strong><span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <strong>Ангел-Хранитель</strong>
+                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
+            </div>
             <p style="font-size:14px; color:var(--text-secondary)">Твой профиль — твои правила. Но аватарку выбери со вкусом! 👼</p>
         </div>
         <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
     </div>
+
     <button class="theme-toggle" id="themeToggle">🌙</button>
 
     <script>
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const IMGBB_KEY = '15cba85a1a5259f80f5326d1fb9bd1f1';
-        let currentUser = null; // Глобальная переменная для текущего залогиненного юзера
+        let currentUser = null;
+
+        // ID профиля Адель
+        const ADEL_ID = '35121042-3aef-4bb9-9c05-9247fbfbc68f';
+        const ADEL_POETRY_URL = 'https://angel-adel.github.io/angel/';
 
         // ===== ТЕМА И ЯЗЫК =====
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+        if (localStorage.getItem('theme') === 'dark') { 
+            document.documentElement.setAttribute('data-theme', 'dark'); 
+            themeToggle.textContent = '☀️'; 
+        }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
             themeToggle.textContent = isDark ? '🌙' : '☀️';
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
+
         const langSelect = document.getElementById('langSelect');
         langSelect.value = localStorage.getItem('lang') || 'ru';
         if (typeof applyLanguage === 'function') applyLanguage(langSelect.value);
-        langSelect.onchange = (e) => { localStorage.setItem('lang', e.target.value); if(typeof applyLanguage === 'function') applyLanguage(e.target.value); };
+        langSelect.onchange = (e) => { 
+            localStorage.setItem('lang', e.target.value); 
+            if (typeof applyLanguage === 'function') applyLanguage(e.target.value); 
+        };
 
         function escapeHtml(s) {
             return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,' ');
         }
 
-                // ===== ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ =====
+        // ===== ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ =====
         async function init() {
-            // 1. Проверяем, кто залогинен
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
 
-            // 2. Читаем параметр из адресной строки
             const urlParams = new URLSearchParams(window.location.search);
             const targetUserId = urlParams.get('user_id') || currentUser.id; 
-            
-            // 3. Определяем, гость ли это
             const isGuest = targetUserId !== currentUser.id;
 
-            // 4. Загружаем данные ТОГО пользователя, чей ID в ссылке
             const { data: userData } = await supabaseClient.from('users').select('*').eq('id', targetUserId).single();
             if (!userData) return alert('Пользователь не найден');
 
-            // 5. Заполняем профиль данными
+            // Заполняем профиль
             document.getElementById('profileName').textContent = userData.username || 'Без имени';
             
             const regDate = userData.created_at ? new Date(userData.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
@@ -209,64 +219,99 @@
             const box = document.getElementById('avatarBox');
             box.innerHTML = userData.avatar_url 
                 ? `<img src="${userData.avatar_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                : '👤';
+                : '';
 
-            // 6. УПРАВЛЕНИЕ КНОПКАМИ
+            // Логика для гостя
             if (isGuest) {
-// === УМНАЯ ЗАПИСЬ ГОСТЯ (UPSERT) ===
-const { error } = await supabaseClient
-    .from('profile_visits')
-    .upsert(
-        { 
-            host_id: targetUserId, 
-            visitor_id: currentUser.id,
-            is_read: false,
-            visited_at: new Date().toISOString() 
-        },
-        { 
-            onConflict: 'host_id,visitor_id' 
-        }
-    ); 
-    // Мы убрали .select() в конце. Теперь базе не нужно проверять права на ЧТЕНИЕ, 
-    // только на ВСТАВКУ или ОБНОВЛЕНИЕ, которые мы уже разрешили.
+                // Запись гостя
+                await supabaseClient.from('profile_visits').upsert(
+                    { host_id: targetUserId, visitor_id: currentUser.id, is_read: false, visited_at: new Date().toISOString() },
+                    { onConflict: 'host_id,visitor_id' }
+                );
 
-if (error) {
-    console.error('❌ Ошибка при записи гостя:', error.message);
-} else {
-    console.log('✅ Визит успешно записан или обновлен!');
-}
-// ==========================================
-
+                // Скрываем редактирование
                 document.getElementById('editBtn').style.display = 'none';
                 document.querySelector('.avatar-edit').style.display = 'none';
                 
-                // Кнопка "Назад"
-                if (!document.getElementById('backToFeedBtn')) {
-                    const backBtn = document.createElement('button');
-                    backBtn.id = 'backToFeedBtn';
-                    backBtn.className = 'btn-sm';
-                    backBtn.style.marginTop = '10px';
-                    backBtn.textContent = '← Вернуться в ленту';
-                    backBtn.onclick = () => window.location.href = 'feed.html';
-                    document.querySelector('.profile-card').appendChild(backBtn);
+                // Проверяем статус дружбы
+                const { data: friendship } = await supabaseClient
+                    .from('friendships')
+                    .select('status, requester_id')
+                    .or(`and(requester_id.eq.${currentUser.id},addressee_id.eq.${targetUserId}),and(requester_id.eq.${targetUserId},addressee_id.eq.${currentUser.id})`)
+                    .single();
+
+                // Создаём блок кнопок
+                const actionsDiv = document.createElement('div');
+                actionsDiv.style.cssText = 'display:flex; gap:10px; margin-top:15px; justify-content:center; flex-wrap:wrap;';
+
+                // Специальная кнопка для Адель
+                if (targetUserId === ADEL_ID) {
+                    const poetryBtn = document.createElement('button');
+                    poetryBtn.className = 'btn-sm';
+                    poetryBtn.textContent = '📚 Сайт поэзии';
+                    poetryBtn.onclick = () => window.open(ADEL_POETRY_URL, '_blank');
+                    actionsDiv.appendChild(poetryBtn);
                 }
+
+                // Кнопка "Написать"
+                const msgBtn = document.createElement('button');
+                msgBtn.className = 'btn-sm';
+                msgBtn.textContent = '💬 Написать';
+                msgBtn.onclick = () => {
+                    localStorage.setItem('chatPartnerId', targetUserId);
+                    window.location.href = 'chat.html';
+                };
+                actionsDiv.appendChild(msgBtn);
+
+                // Кнопка "Друзья"
+                const friendBtn = document.createElement('button');
+                friendBtn.className = 'btn-sm';
+                
+                if (!friendship) {
+                    friendBtn.textContent = '➕ Добавить в друзья';
+                    friendBtn.onclick = async () => {
+                        const { error } = await supabaseClient.from('friendships').insert([{
+                            requester_id: currentUser.id, addressee_id: targetUserId, status: 'pending'
+                        }]);
+                        if (!error) {
+                            friendBtn.textContent = '✓ Вы подписаны';
+                            friendBtn.disabled = true;
+                            friendBtn.style.opacity = '0.6';
+                        }
+                    };
+                } else if (friendship.status === 'pending') {
+                    friendBtn.textContent = (friendship.requester_id === currentUser.id) ? '✓ Вы подписаны' : '⏳ Ожидает подтверждения';
+                    friendBtn.disabled = true;
+                    friendBtn.style.opacity = '0.6';
+                } else if (friendship.status === 'accepted') {
+                    friendBtn.textContent = '👥 В друзьях';
+                    friendBtn.disabled = true;
+                    friendBtn.style.opacity = '0.6';
+                }
+                actionsDiv.appendChild(friendBtn);
+
+                // Кнопка "Назад"
+                const backBtn = document.createElement('button');
+                backBtn.className = 'btn-sm';
+                backBtn.textContent = '← Вернуться в ленту';
+                backBtn.onclick = () => window.location.href = 'feed.html';
+                actionsDiv.appendChild(backBtn);
+
+                document.querySelector('.profile-card').appendChild(actionsDiv);
+
             } else {
-                // Если это свой профиль — показываем редактирование
+                // Свой профиль
                 document.getElementById('editBtn').style.display = 'inline-block';
                 document.querySelector('.avatar-edit').style.display = 'block';
-                const backBtn = document.getElementById('backToFeedBtn');
-                if (backBtn) backBtn.style.display = 'none';
-                
                 document.getElementById('editName').value = userData.username || '';
                 document.getElementById('editBio').value = userData.bio || '';
             }
 
-            // 7. Загружаем статистику и посты для targetUserId
             loadStats(targetUserId);
             loadMyPosts(targetUserId);
-        } // <--- ВОТ ЭТОЙ СКОБКИ НЕ ХВАТАЛО
+        }
 
-        // ===== СМЕНА АВАТАРА (Только для себя!) =====
+        // ===== СМЕНА АВАТАРА =====
         document.getElementById('avatarInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -276,48 +321,42 @@ if (error) {
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.success) {
-                    // Обновляем ТОЛЬКО свой профиль (currentUser.id)
-                    const { error } = await supabaseClient.from('users').update({ avatar_url: data.data.url }).eq('id', currentUser.id);
-                    if (!error) init(); // Перезагружаем данные
-                    else alert('Ошибка БД: ' + error.message);
-                } else alert('Ошибка загрузки фото');
+                    await supabaseClient.from('users').update({ avatar_url: data.data.url }).eq('id', currentUser.id);
+                    init();
+                }
             } catch (err) { alert('Не удалось загрузить аватар'); }
         });
 
-        // ===== РЕДАКТИРОВАНИЕ (Только для себя!) =====
+        // ===== РЕДАКТИРОВАНИЕ =====
         document.getElementById('editBtn').onclick = () => {
-            const card = document.getElementById('editCard');
-            card.style.display = card.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('editCard').style.display = 'block';
         };
-        document.getElementById('cancelBtn').onclick = () => { document.getElementById('editCard').style.display = 'none'; };
+        document.getElementById('cancelBtn').onclick = () => { 
+            document.getElementById('editCard').style.display = 'none'; 
+        };
         document.getElementById('saveBtn').onclick = async () => {
             const name = document.getElementById('editName').value.trim();
             const bio = document.getElementById('editBio').value.trim();
             if (!name) return alert('Имя не может быть пустым');
             
-            // Обновляем ТОЛЬКО свой профиль (currentUser.id)
-            const { error } = await supabaseClient.from('users').update({ username: name, bio: bio }).eq('id', currentUser.id);
-            if (error) alert('Ошибка: ' + error.message);
-            else {
-                document.getElementById('editCard').style.display = 'none';
-                init(); // Перезагружаем данные
-            }
+            await supabaseClient.from('users').update({ username: name, bio: bio }).eq('id', currentUser.id);
+            document.getElementById('editCard').style.display = 'none';
+            init();
         };
 
         // ===== СТАТИСТИКА =====
         async function loadStats(userId) {
             const { data: posts } = await supabaseClient.from('posts').select('id').eq('user_id', userId);
-            const postCount = posts ? posts.length : 0;
-            document.getElementById('statPosts').textContent = postCount;
+            document.getElementById('statPosts').textContent = posts ? posts.length : 0;
 
             let likesCount = 0;
-            if (postCount > 0) {
-                const ids = posts.map(p => p.id);
-                const { count } = await supabaseClient.from('likes').select('*', { count: 'exact', head: true }).in('post_id', ids);
+            if (posts && posts.length > 0) {
+                const { count } = await supabaseClient.from('likes').select('*', { count: 'exact', head: true })
+                    .in('post_id', posts.map(p => p.id));
                 likesCount = count || 0;
             }
             document.getElementById('statLikes').textContent = likesCount;
-        } // <-- ДОБАВИЛ ПРОПУЩЕННУЮ ЗАКРЫВАЮЩУЮ СКОБКУ
+        }
 
         // ===== СЕТКА ПОСТОВ =====
         async function loadMyPosts(userId) {
@@ -342,6 +381,6 @@ if (error) {
         };
 
         init();
-      </script>
+    </script>
 </body>
 </html>
