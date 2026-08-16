@@ -158,12 +158,12 @@
             return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,' ');
         }
 
-        // ===== ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ =====
+                // ===== ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ =====
         async function init() {
             // 1. Проверяем, кто залогинен
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
-            currentUser = session.user; // Сохраняем в глобальную переменную
+            currentUser = session.user;
 
             // 2. Читаем параметр из адресной строки
             const urlParams = new URLSearchParams(window.location.search);
@@ -184,7 +184,7 @@
             const genderIcon = userData.gender === 'female' ? '♀' : '♂';
             
             document.getElementById('profileMeta').innerHTML = `${genderIcon} · На сайте с ${regDate}`;
-            document.getElementById('statDays').textContent = days; // Вернули расчёт дней!
+            document.getElementById('statDays').textContent = days;
             document.getElementById('profileBio').textContent = userData.bio || 'Пока без статуса. Но это можно исправить! ✨';
 
             const box = document.getElementById('avatarBox');
@@ -194,19 +194,33 @@
 
             // 6. УПРАВЛЕНИЕ КНОПКАМИ
             if (isGuest) {
+                // === ЗАПИСЬ ГОСТЯ С ПРОВЕРКОЙ ОШИБОК ===
+                const { error } = await supabaseClient.from('profile_visits').insert([
+                    { host_id: targetUserId, visitor_id: currentUser.id }
+                ]);
+                
+                if (error) {
+                    console.error('❌ Ошибка при записи гостя:', error);
+                } else {
+                    console.log('✅ Гость успешно записан!');
+                }
+                // ==========================================
+
                 document.getElementById('editBtn').style.display = 'none';
                 document.querySelector('.avatar-edit').style.display = 'none';
                 
+                // Кнопка "Назад"
                 if (!document.getElementById('backToFeedBtn')) {
                     const backBtn = document.createElement('button');
                     backBtn.id = 'backToFeedBtn';
                     backBtn.className = 'btn-sm';
                     backBtn.style.marginTop = '10px';
-                    backBtn.textContent = '← Вернуться в ленту'; // Исправил опечатку "лент" -> "ленту"
+                    backBtn.textContent = '← Вернуться в ленту';
                     backBtn.onclick = () => window.location.href = 'feed.html';
                     document.querySelector('.profile-card').appendChild(backBtn);
                 }
             } else {
+                // Если это свой профиль — показываем редактирование
                 document.getElementById('editBtn').style.display = 'inline-block';
                 document.querySelector('.avatar-edit').style.display = 'block';
                 const backBtn = document.getElementById('backToFeedBtn');
@@ -219,7 +233,7 @@
             // 7. Загружаем статистику и посты для targetUserId
             loadStats(targetUserId);
             loadMyPosts(targetUserId);
-        }
+        } // <--- ВОТ ЭТОЙ СКОБКИ НЕ ХВАТАЛО
 
         // ===== СМЕНА АВАТАРА (Только для себя!) =====
         document.getElementById('avatarInput').addEventListener('change', async (e) => {
