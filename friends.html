@@ -73,7 +73,6 @@
 
         .empty-state { text-align: center; padding: 30px 20px; color: var(--text-secondary); font-size: 14px; background: var(--bg-secondary); border-radius: 16px; border: 1px dashed var(--border); }
 
-        /* Виджеты */
         .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
         .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
         .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
@@ -86,9 +85,9 @@
         <div class="controls">
             <a href="feed.html" class="btn-sm">📰 Лента</a>
             <a href="search.html" class="btn-sm">🔍 Поиск</a>
-            <a href="chat.html" class="btn-sm"> Чат</a>
-            <a href="guests.html" class="btn-sm">👀 Гости</a>
             <a href="friends.html" class="btn-sm">👥 Друзья</a>
+            <a href="chat.html" class="btn-sm">💬 Чат</a>
+            <a href="guests.html" class="btn-sm">👀 Гости</a>
             <button class="btn-sm" id="logoutBtn">Выйти</button>
         </div>
     </header>
@@ -107,7 +106,6 @@
         </div>
     </div>
 
-    <!-- Виджеты -->
     <div class="angel-widget">
         <div class="angel-window" id="angelWindow">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
@@ -125,7 +123,6 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null;
 
-        // Тема
         const themeToggle = document.getElementById('themeToggle');
         if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
@@ -146,7 +143,6 @@
             loadRequests();
         }
 
-        // Загрузка списка Друзей (status = 'accepted')
         async function loadFriends() {
             const list = document.getElementById('friendsList');
             const countSpan = document.getElementById('friendsCount');
@@ -168,14 +164,13 @@
             
             const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', partnerIds);
             
-            // Сопоставляем ID дружбы с пользователем для кнопки удаления
-            const userMap = {};
-            users.forEach(u => {
+            // ИСПРАВЛЕНИЕ: Находим ID дружбы прямо внутри цикла map, чтобы он точно был
+            list.innerHTML = users.map(u => {
                 const friendship = friendships.find(f => f.requester_id === u.id || f.addressee_id === u.id);
-                userMap[u.id] = { ...u, friendshipId: friendship.id };
-            });
+                const friendshipId = friendship ? friendship.id : '';
+                const safeName = (u.username || 'пользователя').replace(/'/g, "\\'");
 
-            list.innerHTML = users.map(u => `
+                return `
                 <div class="user-card">
                     <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
                         ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
@@ -185,13 +180,13 @@
                         <div class="user-bio">${u.bio || 'Без статуса'}</div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn-sm btn-danger" onclick="removeFriend('${u.friendshipId}', '${u.username || 'пользователя'}')">Удалить</button>
+                        <button class="btn-sm btn-danger" onclick="removeFriend('${friendshipId}', '${safeName}')">Удалить</button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        // Загрузка Заявок (status = 'pending', где мы addressee)
         async function loadRequests() {
             const list = document.getElementById('requestsList');
             const countSpan = document.getElementById('requestsCount');
@@ -212,44 +207,45 @@
             const requesterIds = requests.map(r => r.requester_id);
             const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', requesterIds);
 
-            const userMap = {};
-            users.forEach(u => {
+            // ИСПРАВЛЕНИЕ: То же самое для заявок
+            list.innerHTML = users.map(u => {
                 const req = requests.find(r => r.requester_id === u.id);
-                userMap[u.id] = { ...u, requestId: req.id };
-            });
+                const requestId = req ? req.id : '';
+                const safeName = (u.username || 'пользователя').replace(/'/g, "\\'");
 
-            list.innerHTML = users.map(u => `
+                return `
                 <div class="user-card">
                     <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
-                        ${u.avatar_url ? `<img src="${u.avatar_url}">` : ''}
+                        ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
                     </div>
                     <div class="user-info" onclick="location.href='profile.html?user_id=${u.id}'">
                         <div class="user-name">${u.username || 'Аноним'}</div>
                         <div class="user-bio">${u.bio || 'Без статуса'}</div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn-sm btn-success" onclick="handleRequest('${u.requestId}', 'accepted')">Принять</button>
-                        <button class="btn-sm btn-danger" onclick="handleRequest('${u.requestId}', 'rejected')">Отклонить</button>
+                        <button class="btn-sm btn-success" onclick="handleRequest('${requestId}', 'accepted')">Принять</button>
+                        <button class="btn-sm btn-danger" onclick="handleRequest('${requestId}', 'rejected')">Отклонить</button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        // Удаление из друзей
         async function removeFriend(friendshipId, name) {
+            if (!friendshipId) return alert('Ошибка: ID записи не найден');
             if (confirm(`Удалить ${name} из друзей?`)) {
                 const { error } = await supabaseClient.from('friendships').delete().eq('id', friendshipId);
                 if (!error) {
                     loadFriends();
-                    loadRequests(); // На случай, если нужно обновить счетчики
+                    loadRequests();
                 } else {
                     alert('Ошибка: ' + error.message);
                 }
             }
         }
 
-        // Принять или отклонить заявку
         async function handleRequest(requestId, newStatus) {
+            if (!requestId) return alert('Ошибка: ID заявки не найден');
             const action = newStatus === 'accepted' ? 'принять' : 'отклонить';
             if (confirm(`Вы уверены, что хотите ${action} заявку?`)) {
                 const { error } = await supabaseClient.from('friendships').update({ status: newStatus }).eq('id', requestId);
