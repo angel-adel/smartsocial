@@ -233,12 +233,12 @@
                 document.getElementById('editBtn').style.display = 'none';
                 document.querySelector('.avatar-edit').style.display = 'none';
                 
-                // Проверяем статус дружбы
-                const { data: friendship } = await supabaseClient
+                                // Проверяем статус дружбы (maybeSingle не выдаст ошибку, если заявок нет)
+                const { data: friendship, error: friendError } = await supabaseClient
                     .from('friendships')
                     .select('id, status, requester_id')
                     .or(`and(requester_id.eq.${currentUser.id},addressee_id.eq.${targetUserId}),and(requester_id.eq.${targetUserId},addressee_id.eq.${currentUser.id})`)
-                    .single();
+                    .maybeSingle(); 
 
                 // Создаём блок кнопок
                 const actionsDiv = document.createElement('div');
@@ -317,7 +317,7 @@
                     friendBtn.disabled = true;
                     friendBtn.style.opacity = '0.6';
                 }
-
+                actionsDiv.appendChild(friendBtn);
                 // Кнопка "Назад"
                 const backBtn = document.createElement('button');
                 backBtn.className = 'btn-sm';
@@ -325,9 +325,10 @@
                 backBtn.onclick = () => window.location.href = 'feed.html';
                 actionsDiv.appendChild(backBtn);
 
-                document.querySelector('.profile-card').appendChild(actionsDiv);
+                  document.querySelector('.profile-card').appendChild(actionsDiv);
+            }
 
-            } else {
+            else {
                 // Свой профиль
                 document.getElementById('editBtn').style.display = 'inline-block';
                 document.querySelector('.avatar-edit').style.display = 'block';
