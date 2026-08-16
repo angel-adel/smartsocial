@@ -152,7 +152,9 @@
                 <span id="chatBadge" class="badge">0</span>
             </div>
             
-            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
+                        <a href="friends.html" class="btn-sm" data-i18n="nav_friends">
+                👥 Друзья <span id="friendsBadge" class="badge">0</span>
+            </a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
             
             <div class="nav-item">
@@ -209,9 +211,11 @@
             navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
         }
 
-        // === СЧЕТЧИКИ (БЕЙДЖИ) ===
+                // === СЧЕТЧИКИ (БЕЙДЖИ) ===
         async function updateBadges() {
             if (!currentUser) return;
+            
+            // 1. Гости
             const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
             const gBadge = document.getElementById('guestBadge');
             if (gBadge) {
@@ -219,11 +223,20 @@
                 guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show');
             }
 
+            // 2. Чат
             const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
             const cBadge = document.getElementById('chatBadge');
             if (cBadge) {
                 cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
                 msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show');
+            }
+            
+            // 3. Друзья (входящие заявки)
+            const { count: friendReqCount } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
+            const fBadge = document.getElementById('friendsBadge');
+            if (fBadge) {
+                fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount;
+                friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show');
             }
         }
 
