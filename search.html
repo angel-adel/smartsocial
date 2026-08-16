@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск | Smart Social</title>
+    
+    <!-- ИКОНКИ И МАНИФЕСТ -->
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
+    <meta name="theme-color" content="#7c3aed">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Smart Social">
+    <!-- КОНЕЦ ИКОНОК -->
+
+    <script src="config.js"></script>
+    <script src="i18n.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
+            --bg-secondary: #ffffff;
+            --text-primary: #1e1e2f;
+            --text-secondary: #6b6b80;
+            --accent: #7c3aed;
+            --border: #e9d9ff;
+            --shadow: rgba(124, 58, 237, 0.1);
+        }
+        [data-theme="dark"] {
+            --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
+            --bg-secondary: #2a1a3e;
+            --text-primary: #f5f0ff;
+            --text-secondary: #c4b5fd;
+            --accent: #a78bfa;
+            --border: #4c1d95;
+            --shadow: rgba(167, 139, 250, 0.2);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); display: flex; flex-direction: column; }
+
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); position: sticky; top: 0; z-index: 100; }
+        .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; }
+
+        .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 16px; flex: 1; }
+
+        /* Стили поиска */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 24px; }
+        .search-input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 20px; background: var(--bg-secondary); color: var(--text-primary); font-size: 15px; outline: none; box-shadow: 0 2px 8px var(--shadow); }
+        .search-input:focus { border-color: var(--accent); }
+        .search-btn { background: var(--accent); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 8px var(--shadow); }
+        .search-btn svg { width: 20px; height: 20px; fill: white; }
+
+        .results-list { display: flex; flex-direction: column; gap: 12px; }
+        .user-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: inherit; }
+        .user-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow); border-color: var(--accent); }
+        
+        .user-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-bio { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .view-profile-btn { background: var(--bg-primary); border: 1px solid var(--border); color: var(--accent); padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+
+        /* Виджеты */
+        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
+        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
+        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
+        .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
+        <div class="controls">
+            <a href="feed.html" class="btn-sm">📰 Лента</a>
+            <a href="chat.html" class="btn-sm">💬 Чат</a>
+            <a href="profile.html" class="btn-sm">👤 Профиль</a>
+            <a href="guests.html" class="btn-sm">👀 Гости</a>
+            <button class="btn-sm" id="logoutBtn">Выйти</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" class="search-input" placeholder="Поиск по имени или статусу...">
+            <button class="search-btn" onclick="performSearch()">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            </button>
+        </div>
+
+        <div class="results-list" id="resultsList">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div>Введите имя или статус, чтобы найти людей</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Виджет Ангела-Хранителя и Смена темы -->
+    <div class="angel-widget">
+        <div class="angel-window" id="angelWindow">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <strong>Ангел-Хранитель</strong>
+                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
+            </div>
+            <p style="font-size:14px; color:var(--text-secondary)">Ищи друзей с открытым сердцем. Возможно, твой идеальный собеседник уже здесь! 👼</p>
+        </div>
+        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
+    </div>
+
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <script>
+        if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
+
+        // ===== ТЕМА =====
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') { 
+            document.documentElement.setAttribute('data-theme', 'dark'); 
+            themeToggle.textContent = '☀️'; 
+        }
+        themeToggle.onclick = () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        };
+
+        // ===== ЯЗЫК =====
+        const langSelect = document.getElementById('langSelect'); // Если понадобится в будущем
+        if (typeof applyLanguage === 'function') applyLanguage('ru');
+
+        document.getElementById('logoutBtn').onclick = async () => { 
+            await supabaseClient.auth.signOut(); 
+            window.location.href = 'index.html'; 
+        };
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'index.html';
+            currentUser = session.user;
+        }
+
+        // ===== ПОИСК =====
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            const resultsList = document.getElementById('resultsList');
+
+            if (query.length < 2) {
+                resultsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✏️</div>
+                        <div>Введите минимум 2 символа для поиска</div>
+                    </div>`;
+                return;
+            }
+
+            resultsList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-secondary)">Ищем...</div>';
+
+            // Ищем совпадения в имени (username) или статусе (bio)
+            const { data: users, error } = await supabaseClient
+                .from('users')
+                .select('id, username, bio, avatar_url')
+                .or(`username.ilike.%${query}%,bio.ilike.%${query}%`)
+                .limit(20); // Ограничиваем выдачу, чтобы не грузить базу
+
+            if (error || !users || users.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">😔</div>
+                        <div>Никого не найдено. Попробуй изменить запрос.</div>
+                    </div>`;
+                return;
+            }
+
+            // Рендерим результаты
+            resultsList.innerHTML = users.map(user => {
+                const avatarHtml = user.avatar_url 
+                    ? `<img src="${user.avatar_url}">` 
+                    : '👤';
+                const bioText = user.bio || 'Без статуса';
+
+                return `
+                <a href="profile.html?user_id=${user.id}" class="user-card">
+                    <div class="user-avatar">${avatarHtml}</div>
+                    <div class="user-info">
+                        <div class="user-name">${user.username || 'Аноним'}</div>
+                        <div class="user-bio">${bioText}</div>
+                    </div>
+                    <div class="view-profile-btn">Профиль</div>
+                </a>
+                `;
+            }).join('');
+        }
+
+        // Живой поиск при вводе (с небольшой задержкой, чтобы не спамить базу)
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch();
+            }, 500); // Ждем 500мс после последнего нажатия клавиши
+        });
+
+        // Поиск по Enter
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(searchTimeout);
+                performSearch();
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
