@@ -151,10 +151,10 @@
         </div>
     </header>
     <div class="container">
-        <div class="create-post">
-            <textarea id="postContent" placeholder="Что у вас нового?"></textarea>
+                <div class="create-post">
+            <textarea id="postContent" placeholder="Что у вас нового?" data-i18n-placeholder="feed_placeholder"></textarea>
             <div class="input-row">
-                <input type="url" id="postLink" placeholder="Ссылка (YouTube, MP3...)" />
+                <input type="url" id="postLink" placeholder="Ссылка (YouTube, MP3...)" data-i18n-placeholder="feed_link_placeholder" />
             </div>
             <div class="actions">
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -162,9 +162,9 @@
                     <button class="attach-btn" onclick="document.getElementById('imageInput').click()">📷</button>
                     <span id="fileName" style="font-size: 12px; color: var(--text-secondary);"></span>
                 </div>
-                <button class="publish-btn" id="publishBtn">Опубликовать</button>
+                <button class="publish-btn" id="publishBtn" data-i18n="feed_publish">Опубликовать</button>
             </div>
-            <div class="limit-info" id="limitInfo">Лимит: 10 постов в сутки</div>
+            <div class="limit-info" id="limitInfo" data-i18n="feed_limit_default">Лимит: 10 постов в сутки</div>
         </div>
         <div id="feedList"></div>
     </div>
@@ -226,8 +226,8 @@
             if (hour >= 23 || hour < 7) {
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
-                btn.textContent = 'Ночной режим 🌙';
-                if (info) info.textContent = 'Публикация доступна с 07:00 до 23:00';
+                btn.textContent = t('feed_night_mode');
+                if (info) info.textContent = t('feed_publish_available');
             }
         }
 
@@ -238,13 +238,13 @@
             const info = document.getElementById('limitInfo');
             const btn = document.getElementById('publishBtn');
             if (count >= 10) {
-                info.textContent = 'Лимит исчерпан на сегодня ✨';
+                info.textContent = t('feed_limit_exhausted');
                 info.style.color = 'var(--like-color)';
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
             } else {
-                if (btn.textContent !== 'Ночной режим 🌙') {
-                    info.textContent = `Осталось постов сегодня: ${10 - count}`;
+                if (btn.textContent !== t('feed_night_mode')) {
+                    info.textContent = t('feed_posts_left') + (10 - count);
                 }
             }
         }
@@ -266,14 +266,14 @@
             } catch (e) { return null; }
         }
 
-        // ===== ПУБЛИКАЦИЯ =====
+                // ===== ПУБЛИКАЦИЯ =====
         document.getElementById('publishBtn').onclick = async () => {
             const hour = new Date().getHours();
             if (hour >= 23 || hour < 7) {
-                alert('🌙 Ночной режим: с 23:00 до 07:00 публикация запрещена. Отдохни, мир подождёт твоих мыслей до утра!');
+                alert(t('feed_night_alert'));
                 return;
             }
-
+            
             const content = document.getElementById('postContent').value.trim();
             const link = document.getElementById('postLink').value.trim();
             const file = document.getElementById('imageInput').files[0];
