@@ -38,7 +38,18 @@
         * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
         body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); padding-bottom: 80px; }
 
-        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
+                header { 
+            background: var(--bg-secondary); 
+            padding: 12px 20px; 
+            border-bottom: 1px solid var(--border); 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 10px var(--shadow); 
+        }
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
         .controls { display: flex; gap: 10px; align-items: center; }
         select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
@@ -52,19 +63,33 @@
         .nav-item { position: relative; display: inline-flex; align-items: center; }
         .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
         .badge.show { display: inline-block; }
-        .burger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); padding: 0 10px; }
+        .burger-btn { display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-primary); padding: 8px 12px; min-width: 44px; min-height: 44px; }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .burger-btn { display: block; }
             .controls {
-                display: none; position: absolute; top: 100%; left: 0; right: 0;
-                background: var(--bg-secondary); flex-direction: column; padding: 15px;
-                border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 99;
+                display: none; 
+                position: absolute; 
+                top: 100%; 
+                left: 0; 
+                right: 0;
+                background: var(--bg-secondary); 
+                flex-direction: column; 
+                padding: 15px;
+                border-bottom: 1px solid var(--border); 
+                box-shadow: 0 4px 12px var(--shadow); 
+                z-index: 101; /* Чуть выше чем у header, чтобы меню перекрывало контент */
+                max-height: 80vh;
+                overflow-y: auto;
             }
             .controls.active { display: flex; }
-            .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
+            .controls a, .controls button, .controls select, .controls .nav-item { 
+                width: 100%; 
+                margin: 5px 0; 
+                text-align: center; 
+                justify-content: center; 
+            }
         }
-
         .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
         .create-post { background: var(--bg-secondary); padding: 20px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 4px 12px var(--shadow); }
         textarea { width: 100%; border: none; resize: none; background: transparent; color: var(--text-primary); font-size: 16px; min-height: 80px; outline: none; margin-bottom: 12px; font-family: inherit; }
