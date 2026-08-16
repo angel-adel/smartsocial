@@ -3,23 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Друзья | Smart Social</title>
-    
-    <!-- ИКОНКИ И МАНИФЕСТ -->
+    <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
     <meta name="theme-color" content="#7c3aed">
-    <link rel="manifest" href="./manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Smart Social">
-
+    <title>Друзья | Smart Social</title>
+    
     <script src="config.js"></script>
     <script src="i18n.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
@@ -30,6 +25,7 @@
             --border: #e9d9ff;
             --shadow: rgba(124, 58, 237, 0.1);
             --danger: #ef4444;
+            --success: #10b981;
         }
         [data-theme="dark"] {
             --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
@@ -41,125 +37,81 @@
             --shadow: rgba(167, 139, 250, 0.2);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
-        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); display: flex; flex-direction: column; padding-bottom: 80px; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); padding-bottom: 80px; }
 
-        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); position: sticky; top: 0; z-index: 100; }
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
         .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
         .btn-sm:hover { background: var(--border); color: var(--text-primary); }
-        .btn-danger { border-color: var(--danger); color: var(--danger); }
-        .btn-danger:hover { background: var(--danger); color: white; }
-        .btn-success { border-color: #10b981; color: #10b981; }
-        .btn-success:hover { background: #10b981; color: white; }
+        .profile-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); background: var(--border); cursor: pointer; overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+        .nav-item { position: relative; display: inline-flex; align-items: center; }
+        .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
+        .badge.show { display: inline-block; }
+        .burger-btn { display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-primary); padding: 8px 12px; min-width: 44px; min-height: 44px; }
+
+        @media (max-width: 900px) {
+            .burger-btn { display: block; }
+            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 101; max-height: 80vh; overflow-y: auto; }
+            .controls.active { display: flex; }
+            .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
+        }
 
         .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 16px; flex: 1; }
         .page-title { font-size: 24px; margin-bottom: 20px; text-align: center; }
-        
         .section-header { font-size: 16px; font-weight: 600; margin: 24px 0 12px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
         .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
         .user-list { display: flex; flex-direction: column; gap: 12px; }
         .user-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); }
-        
         .user-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; cursor: pointer; }
         .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        
         .user-info { flex: 1; min-width: 0; cursor: pointer; }
         .user-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .user-bio { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
         .user-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
+        .btn-danger { border-color: var(--danger); color: var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        .btn-success { border-color: var(--success); color: var(--success); }
+        .btn-success:hover { background: var(--success); color: white; }
         .empty-state { text-align: center; padding: 30px 20px; color: var(--text-secondary); font-size: 14px; background: var(--bg-secondary); border-radius: 16px; border: 1px dashed var(--border); }
 
         .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
         .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
         .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
-                /* === СТИЛИ ДЛЯ БУРГЕР-МЕНЮ И БЕЙДЖЕЙ === */
-        
-        /* Красный кружок счетчика */
-        .badge { 
-            background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; 
-            border-radius: 10px; margin-left: 4px; font-weight: bold; 
-            display: none; /* Скрыт по умолчанию */
-        }
-        .badge.show { display: inline-block; } /* Показываем, если есть цифра */
-
-        /* Кнопка Бургера (скрыта на ПК) */
-        .burger-btn { 
-            display: none; background: none; border: none; font-size: 24px; 
-            cursor: pointer; color: var(--text-primary); padding: 0 10px; 
-        }
-
-        /* АДАПТИВ ДЛЯ МОБИЛЬНЫХ (экраны меньше 768px) */
-        @media (max-width: 768px) {
-            .burger-btn { display: block; } /* Показываем бургер */
-            
-            .controls {
-                display: none; /* Скрываем меню по умолчанию */
-                position: absolute;
-                top: 100%; /* Сразу под шапкой */
-                left: 0; right: 0;
-                background: var(--bg-secondary);
-                flex-direction: column;
-                padding: 15px;
-                border-bottom: 1px solid var(--border);
-                box-shadow: 0 4px 12px var(--shadow);
-                z-index: 99;
-            }
-            
-            .controls.active { display: flex; } /* Показываем при клике на бургер */
-            
-            /* Растягиваем кнопки на всю ширину в мобильном меню */
-            .controls a, .controls button, .controls select { 
-                width: 100%; margin: 5px 0; text-align: center; 
-            }
-        }
     </style>
 </head>
 <body>
-            <header>
+    <header>
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
-        
-        <!-- Кнопка Бургера (появится только на телефоне) -->
         <button class="burger-btn" id="burgerBtn">☰</button>
-
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇷🇺 RU</option>
-                <option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬🇧 EN</option>
-                <option value="es">🇪🇸 ES</option>
-                <option value="de">🇩🇪 DE</option>
+                <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪 ES</option><option value="de">🇪 DE</option>
             </select>
-
-            <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
-                <span id="headerAvatar">👤</span>
-            </button>
-
+            <button class="profile-btn" onclick="location.href='profile.html'"><span id="headerAvatar"></span></button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            
-            <!-- Добавили span с id="chatBadge" -->
-            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">
-                💬 Чат <span id="chatBadge" class="badge">0</span>
-            </a>
-            
-            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
+            <div class="nav-item">
+                <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
+                <span id="chatBadge" class="badge">0</span>
+            </div>
+            <a href="friends.html" class="btn-sm" data-i18n="nav_friends"> Друзья <span id="friendsBadge" class="badge">0</span></a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
-            
-            <!-- Добавили span с id="guestBadge" -->
-            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">
-                👀 Гости <span id="guestBadge" class="badge">0</span>
-            </a>
-            
+            <div class="nav-item">
+                <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
+                <span id="guestBadge" class="badge">0</span>
+            </div>
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
+
     <div class="container">
-        <h1 class="page-title">👥 Мои друзья</h1>
+        <h1 class="page-title" data-i18n="friends_title">👥 Мои друзья</h1>
 
         <div class="section-header">Друзья <span id="friendsCount" style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(0)</span></div>
         <div class="user-list" id="friendsList">
@@ -185,63 +137,41 @@
     <button class="theme-toggle" id="themeToggle">🌙</button>
 
     <script>
-                // === ЛОГИКА БУРГЕР-МЕНЮ ===
-        const burgerBtn = document.getElementById('burgerBtn');
-        const navControls = document.getElementById('navControls');
-        
-        if (burgerBtn && navControls) {
-            // Открыть/закрыть меню
-            burgerBtn.onclick = () => navControls.classList.toggle('active');
-            
-            // Автоматически закрывать меню при клике на любую ссылку
-            navControls.querySelectorAll('a').forEach(link => {
-                link.onclick = () => navControls.classList.remove('active');
-            });
-        }
-
-        // === ЛОГИКА КРАСНЫХ СЧЕТЧИКОВ (БЕЙДЖЕЙ) ===
-        async function updateBadges() {
-            if (!currentUser) return;
-
-            // 1. Счетчик непрочитанных гостей
-            const { count: guestCount } = await supabaseClient
-                .from('profile_visits')
-                .select('*', { count: 'exact', head: true })
-                .eq('host_id', currentUser.id)
-                .eq('is_read', false);
-
-            const gBadge = document.getElementById('guestBadge');
-            if (gBadge) {
-                gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
-                if (guestCount > 0) gBadge.classList.add('show'); 
-                else gBadge.classList.remove('show');
-            }
-
-            // 2. Счетчик непрочитанных сообщений
-            const { count: msgCount } = await supabaseClient
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('receiver_id', currentUser.id)
-                .eq('is_read', false);
-
-            const cBadge = document.getElementById('chatBadge');
-            if (cBadge) {
-                cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
-                if (msgCount > 0) cBadge.classList.add('show'); 
-                else cBadge.classList.remove('show');
-            }
-        }
-        
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null;
 
+        // === БУРГЕР-МЕНЮ ===
+        const burgerBtn = document.getElementById('burgerBtn');
+        const navControls = document.getElementById('navControls');
+        if (burgerBtn && navControls) {
+            burgerBtn.onclick = () => navControls.classList.toggle('active');
+            navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
+        }
+
+        // === СЧЕТЧИКИ (БЕЙДЖИ) ===
+        async function updateBadges() {
+            if (!currentUser) return;
+            const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
+            const gBadge = document.getElementById('guestBadge');
+            if (gBadge) { gBadge.textContent = guestCount > 99 ? '99+' : guestCount; guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show'); }
+            
+            const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
+            const cBadge = document.getElementById('chatBadge');
+            if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
+            
+            const { count: friendReqCount } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
+            const fBadge = document.getElementById('friendsBadge');
+            if (fBadge) { fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount; friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show'); }
+        }
+
+        // === ТЕМА ===
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '️'; }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            themeToggle.textContent = isDark ? '' : '☀️';
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
@@ -252,10 +182,12 @@
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
             
+            updateBadges();
             loadFriends();
             loadRequests();
         }
 
+        // Загрузка списка Друзей (status = 'accepted')
         async function loadFriends() {
             const list = document.getElementById('friendsList');
             const countSpan = document.getElementById('friendsCount');
@@ -267,7 +199,7 @@
                 .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
 
             if (!friendships || friendships.length === 0) {
-                list.innerHTML = '<div class="empty-state">У тебя пока нет друзей. Найди их через поиск! 🔍</div>';
+                list.innerHTML = '<div class="empty-state" data-i18n="friends_empty">У тебя пока нет друзей. Найди их через поиск! 🔍</div>';
                 countSpan.textContent = '(0)';
                 return;
             }
@@ -277,7 +209,6 @@
             
             const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', partnerIds);
             
-            // ИСПРАВЛЕНИЕ: Находим ID дружбы прямо внутри цикла map, чтобы он точно был
             list.innerHTML = users.map(u => {
                 const friendship = friendships.find(f => f.requester_id === u.id || f.addressee_id === u.id);
                 const friendshipId = friendship ? friendship.id : '';
@@ -293,13 +224,14 @@
                         <div class="user-bio">${u.bio || 'Без статуса'}</div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn-sm btn-danger" onclick="removeFriend('${friendshipId}', '${safeName}')">Удалить</button>
+                        <button class="btn-sm btn-danger" onclick="removeFriend('${friendshipId}', '${safeName}')">${t('btn_delete') || 'Удалить'}</button>
                     </div>
                 </div>
                 `;
             }).join('');
         }
 
+        // Загрузка Заявок (status = 'pending', где мы addressee)
         async function loadRequests() {
             const list = document.getElementById('requestsList');
             const countSpan = document.getElementById('requestsCount');
@@ -311,7 +243,7 @@
                 .eq('addressee_id', currentUser.id);
 
             if (!requests || requests.length === 0) {
-                list.innerHTML = '<div class="empty-state">Нет новых заявок 🌙</div>';
+                list.innerHTML = '<div class="empty-state" data-i18n="req_empty">Нет новых заявок 🌙</div>';
                 countSpan.textContent = '(0)';
                 return;
             }
@@ -320,7 +252,6 @@
             const requesterIds = requests.map(r => r.requester_id);
             const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', requesterIds);
 
-            // ИСПРАВЛЕНИЕ: То же самое для заявок
             list.innerHTML = users.map(u => {
                 const req = requests.find(r => r.requester_id === u.id);
                 const requestId = req ? req.id : '';
@@ -336,38 +267,32 @@
                         <div class="user-bio">${u.bio || 'Без статуса'}</div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn-sm btn-success" onclick="handleRequest('${requestId}', 'accepted')">Принять</button>
-                        <button class="btn-sm btn-danger" onclick="handleRequest('${requestId}', 'rejected')">Отклонить</button>
+                        <button class="btn-sm btn-success" onclick="handleRequest('${requestId}', 'accepted')">${t('btn_accept') || 'Принять'}</button>
+                        <button class="btn-sm btn-danger" onclick="handleRequest('${requestId}', 'rejected')">${t('btn_reject') || 'Отклонить'}</button>
                     </div>
                 </div>
                 `;
             }).join('');
         }
 
+        // Удаление из друзей
         async function removeFriend(friendshipId, name) {
             if (!friendshipId) return alert('Ошибка: ID записи не найден');
-            if (confirm(`Удалить ${name} из друзей?`)) {
+            if (confirm((t('delete_confirm') || 'Удалить ') + name + (t('friends_delete_confirm') || ' из друзей?'))) {
                 const { error } = await supabaseClient.from('friendships').delete().eq('id', friendshipId);
-                if (!error) {
-                    loadFriends();
-                    loadRequests();
-                } else {
-                    alert('Ошибка: ' + error.message);
-                }
+                if (!error) { loadFriends(); updateBadges(); } 
+                else alert('Ошибка: ' + error.message);
             }
         }
 
+        // Принять или отклонить заявку
         async function handleRequest(requestId, newStatus) {
             if (!requestId) return alert('Ошибка: ID заявки не найден');
-            const action = newStatus === 'accepted' ? 'принять' : 'отклонить';
-            if (confirm(`Вы уверены, что хотите ${action} заявку?`)) {
+            const action = newStatus === 'accepted' ? (t('accept_confirm') || 'принять') : (t('reject_confirm') || 'отклонить');
+            if (confirm(action + '?')) {
                 const { error } = await supabaseClient.from('friendships').update({ status: newStatus }).eq('id', requestId);
-                if (!error) {
-                    loadFriends();
-                    loadRequests();
-                } else {
-                    alert('Ошибка: ' + error.message);
-                }
+                if (!error) { loadFriends(); loadRequests(); updateBadges(); } 
+                else alert('Ошибка: ' + error.message);
             }
         }
 
