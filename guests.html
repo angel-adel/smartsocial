@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Гости | Smart Social</title>
+    <script src="config.js"></script>
+    <script src="i18n.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
+            --bg-secondary: #ffffff;
+            --text-primary: #1e1e2f;
+            --text-secondary: #6b6b80;
+            --accent: #7c3aed;
+            --border: #e9d9ff;
+            --shadow: rgba(124, 58, 237, 0.1);
+        }
+        [data-theme="dark"] {
+            --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
+            --bg-secondary: #2a1a3e;
+            --text-primary: #f5f0ff;
+            --text-secondary: #c4b5fd;
+            --accent: #a78bfa;
+            --border: #4c1d95;
+            --shadow: rgba(167, 139, 250, 0.2);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); padding-bottom: 80px; }
+
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
+        .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; }
+
+        .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
+        
+        .page-title { font-size: 24px; margin-bottom: 20px; text-align: center; }
+        
+        .guest-list { display: flex; flex-direction: column; gap: 12px; }
+        .guest-item { 
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; 
+            padding: 14px; display: flex; align-items: center; gap: 14px; 
+            box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: inherit;
+        }
+        .guest-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow); }
+        
+        .guest-avatar { 
+            width: 50px; height: 50px; border-radius: 50%; background: var(--border); 
+            display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; 
+        }
+        .guest-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .guest-info { flex: 1; }
+        .guest-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+        .guest-time { font-size: 12px; color: var(--text-secondary); }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+
+        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
+        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
+        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
+        .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
+        <div class="controls">
+            <select id="langSelect">
+                <option value="ru">🇷 RU</option><option value="uk">🇺 UA</option><option value="en">🇬 EN</option><option value="es"> ES</option><option value="de"> DE</option>
+            </select>
+            <button class="btn-sm" onclick="location.href='feed.html'">📰 Лента</button>
+            <button class="btn-sm" onclick="location.href='profile.html'">👤 Профиль</button>
+            <button class="btn-sm" id="logoutBtn">Выйти</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">👀 Мои гости</h1>
+        <div class="guest-list" id="guestList">
+            <div class="empty-state">Загрузка...</div>
+        </div>
+    </div>
+
+    <div class="angel-widget">
+        <div class="angel-window" id="angelWindow">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Ангел-Хранитель</strong><span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span></div>
+            <p style="font-size:14px; color:var(--text-secondary)">Кто-то тайно наблюдал за тобой... или просто зашёл поздороваться! 👼</p>
+        </div>
+        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
+    </div>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <script>
+        if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
+
+        // Тема
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+        themeToggle.onclick = () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        };
+
+        // Язык
+        const langSelect = document.getElementById('langSelect');
+        langSelect.value = localStorage.getItem('lang') || 'ru';
+        if (typeof applyLanguage === 'function') applyLanguage(langSelect.value);
+        langSelect.onchange = (e) => { localStorage.setItem('lang', e.target.value); if(typeof applyLanguage === 'function') applyLanguage(e.target.value); };
+
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'index.html';
+            currentUser = session.user;
+            loadGuests();
+        }
+
+        async function loadGuests() {
+            const list = document.getElementById('guestList');
+            
+            // 1. Получаем все визиты к нам (отсортированные по времени)
+            const { data: visits, error } = await supabaseClient
+                .from('profile_visits')
+                .select('*')
+                .eq('host_id', currentUser.id)
+                .order('visited_at', { ascending: false });
+
+            if (error || !visits || visits.length === 0) {
+                list.innerHTML = '<div class="empty-state">Пока никто не заходил в гости. Но это только вопрос времени! 🌙</div>';
+                return;
+            }
+
+            // 2. Собираем уникальные ID гостей (чтобы не дублировать одного и того же человека 10 раз)
+            const uniqueVisitorIds = [...new Set(visits.map(v => v.visitor_id))];
+            
+            // 3. Получаем данные пользователей (аватарки и имена)
+            const { data: users } = await supabaseClient
+                .from('users')
+                .select('id, username, avatar_url')
+                .in('id', uniqueVisitorIds);
+
+            if (!users) return;
+
+            // 4. Рендерим список
+            list.innerHTML = users.map(user => {
+                // Находим время последнего визита этого пользователя
+                const lastVisit = visits.find(v => v.visitor_id === user.id);
+                const time = new Date(lastVisit.visited_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+                
+                const avatarHtml = user.avatar_url 
+                    ? `<img src="${user.avatar_url}">` 
+                    : '';
+
+                return `
+                <a href="profile.html?user_id=${user.id}" class="guest-item">
+                    <div class="guest-avatar">${avatarHtml}</div>
+                    <div class="guest-info">
+                        <div class="guest-name">${user.username || 'Аноним'}</div>
+                        <div class="guest-time">Зашёл(а): ${time}</div>
+                    </div>
+                </a>
+                `;
+            }).join('');
+        }
+
+        init();
+    </script>
+</body>
+</html>
