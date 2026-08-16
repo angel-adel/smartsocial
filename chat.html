@@ -88,6 +88,12 @@
         
         .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px; }
 
+        /* Виджеты */
+        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
+        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
+        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
+        .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
+
         @media (max-width: 768px) {
             .chat-container { flex-direction: column; height: auto; }
             .conversations-list { width: 100%; max-height: 200px; }
@@ -115,6 +121,20 @@
         </div>
     </div>
 
+    <!-- Виджет Ангела-Хранителя и Смена темы (СТРОГО ПЕРЕД SCRIPT) -->
+    <div class="angel-widget">
+        <div class="angel-window" id="angelWindow">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <strong>Ангел-Хранитель</strong>
+                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
+            </div>
+            <p style="font-size:14px; color:var(--text-secondary)">Общайся вежливо и с душой. Твои слова могут сделать чей-то день лучше! 👼</p>
+        </div>
+        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
+    </div>
+
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
     <script>
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -123,7 +143,23 @@
         let activePartnerName = '';
         let partnersData = {}; 
 
-        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
+        // ===== ТЕМА =====
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') { 
+            document.documentElement.setAttribute('data-theme', 'dark'); 
+            themeToggle.textContent = '☀️'; 
+        }
+        themeToggle.onclick = () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        };
+
+        document.getElementById('logoutBtn').onclick = async () => { 
+            await supabaseClient.auth.signOut(); 
+            window.location.href = 'index.html'; 
+        };
 
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -194,6 +230,7 @@
                 </div>
             `;
 
+            // Помечаем сообщения от этого партнера как прочитанные
             await supabaseClient
                 .from('messages')
                 .update({ is_read: true })
@@ -215,7 +252,7 @@
                 .order('created_at', { ascending: true });
 
             if (!msgs || msgs.length === 0) {
-                area.innerHTML = '<div style="text-align:center; color:var(--text-secondary); margin-top:20px;">Начните общение первым! </div>';
+                area.innerHTML = '<div style="text-align:center; color:var(--text-secondary); margin-top:20px;">Начните общение первым! 👋</div>';
                 return;
             }
 
@@ -224,7 +261,7 @@
                 const time = new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 const senderName = isMe ? 'Вы' : activePartnerName;
                 
-                // Экранирование для onclick
+                // Безопасное экранирование для onclick
                 const safeContent = m.content.replace(/`/g, '\\`').replace(/\n/g, '\\n');
 
                 return `
