@@ -172,4 +172,131 @@
             const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
             const cBadge = document.getElementById('chatBadge');
             if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
-       
+        }
+
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+        themeToggle.onclick = () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        };
+
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'index.html';
+            currentUser = session.user;
+
+            // СБРОС СЧЕТЧИКА СООБЩЕНИЙ: Помечаем все входящие как прочитанные
+            await supabaseClient.from('messages').update({ is_read: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
+
+            const chatPartnerId = localStorage.getItem('chatPartnerId');
+            if (chatPartnerId) {
+                localStorage.removeItem('chatPartnerId');
+                const { data: partner } = await supabaseClient.from('users').select('id, username, avatar_url').eq('id', chatPartnerId).single();
+                if (partner) {
+                    partnersData[partner.id] = partner; 
+                    await loadConversations();
+                    openChat(partner.id);
+                } else { loadConversations(); }
+            } else { loadConversations(); }
+            
+            updateBadges();
+        }
+
+        async function loadConversations() {
+            const { data: msgs } = await supabaseClient.from('messages').select('sender_id, receiver_id, content, created_at').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`).order('created_at', { ascending: false });
+            if (!msgs || msgs.length === 0) { document.getElementById('convList').innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary)" data-i18n="chat_no_messages">Пока нет сообщений</div>'; return; }
+            const partners = new Set();
+            msgs.forEach(m => { const partnerId = m.sender_id === currentUser.id ? m.receiver_id : m.sender_id; partners.add(partnerId); });
+            const { data: users } = await supabaseClient.from('users').select('id, username, avatar_url').in('id', Array.from(partners));
+            users.forEach(u => partnersData[u.id] = u);
+            const list = document.getElementById('convList');
+            list.innerHTML = users.map(u => {
+                const lastMsg = msgs.find(m => (m.sender_id === u.id && m.receiver_id === currentUser.id) || (m.sender_id === currentUser.id && m.receiver_id === u.id));
+                const preview = lastMsg.sender_id === currentUser.id ? `Вы: ${lastMsg.content}` : `${u.username}: ${lastMsg.content}`;
+                const avatarHtml = u.avatar_url ? `<img src="${u.avatar_url}">` : '👤';
+                return `<div class="conv-item" onclick="openChat('${u.id}')">
+                    <div class="conv-avatar">${avatarHtml}</div>
+                    <div class="conv-info"><div class="conv-name">${u.username || 'Аноним'}</div><div class="conv-preview">${preview}</div></div>
+                </div>`;
+            }).join('');
+        }
+
+        async function openChat(partnerId) {
+            activePartnerId = partnerId;
+            const partner = partnersData[partnerId];
+            activePartnerName = partner.username || 'Аноним';
+            const avatarHtml = partner.avatar_url ? `<img src="${partner.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : '👤';
+            document.getElementById('chatWindow').innerHTML = `
+                <div class="chat-header">${avatarHtml}<span>${activePartnerName}</span></div>
+                <div class="messages-area" id="messagesArea">Загрузка...</div>
+                <div class="chat-input-area">
+                    <textarea id="msgInput" class="chat-input" placeholder="${t('chat_placeholder') || 'Написать сообщение...'}" rows="1"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+                </div>`;
+            await supabaseClient.from('messages').update({ is_read: true }).eq('sender_id', partnerId).eq('receiver_id', currentUser.id).eq('is_read', false);
+            loadMessages();
+        }
+
+        async function loadMessages() {
+            if (!activePartnerId) return;
+            const area = document.getElementById('messagesArea');
+            const { data: msgs } = await supabaseClient.from('messages').select('*').or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activePartnerId}),and(sender_id.eq.${activePartnerId},receiver_id.eq.${currentUser.id})`).order('created_at', { ascending: true });
+            if (!msgs || msgs.length === 0) { area.innerHTML = '<div style="text-align:center; color:var(--text-secondary); margin-top:20px;" data-i18n="chat_start_first">Начните общение первым! 👋</div>'; return; }
+            area.innerHTML = msgs.map(m => {
+                const isMe = m.sender_id === currentUser.id;
+                const time = new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const senderName = isMe ? 'Вы' : activePartnerName;
+                const safeContent = m.content.replace(/`/g, '\\`').replace(/\n/g, '\\n');
+                return `<div class="message ${isMe ? 'me' : 'them'}">
+                    <div class="msg-sender">${senderName}:</div>
+                    <div class="msg-text">${m.content}</div>
+                    <div class="msg-actions">
+                        ${isMe ? `<button class="msg-edit-btn" onclick="editMessage('${m.id}', \`${safeContent}\`)">✏️</button><button class="msg-del-btn" onclick="deleteMessage('${m.id}')">🗑️</button>` : ''}
+                        <span class="msg-time">${time} ${isMe && m.is_read ? '✓✓' : ''}</span>
+                    </div>
+                </div>`;
+            }).join('');
+            area.scrollTop = area.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const content = input.value.trim();
+            if (!content || !activePartnerId) return;
+            const btn = document.getElementById('sendBtn'); btn.disabled = true;
+            const { error } = await supabaseClient.from('messages').insert([{ sender_id: currentUser.id, receiver_id: activePartnerId, content: content, is_read: false }]);
+            if (!error) { input.value = ''; input.style.height = 'auto'; loadMessages(); loadConversations(); }
+            btn.disabled = false;
+        }
+
+        async function editMessage(msgId, oldContent) {
+            const newContent = prompt(t('chat_edit_prompt') || 'Редактировать сообщение:', oldContent.replace(/\\n/g, '\n'));
+            if (newContent !== null && newContent.trim() !== '' && newContent !== oldContent.replace(/\\n/g, '\n')) {
+                await supabaseClient.from('messages').update({ content: newContent.trim() }).eq('id', msgId);
+                loadMessages(); loadConversations();
+            }
+        }
+
+        async function deleteMessage(msgId) {
+            if (confirm(t('chat_delete_confirm') || 'Удалить сообщение?')) {
+                await supabaseClient.from('messages').delete().eq('id', msgId);
+                loadMessages(); loadConversations();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && document.activeElement.id === 'msgInput') { e.preventDefault(); sendMessage(); }
+        });
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'msgInput') { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; }
+        });
+
+        init();
+    </script>
+</body>
+</html>
