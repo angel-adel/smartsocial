@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Друзья | Smart Social</title>
+    
+    <!-- ИКОНКИ И МАНИФЕСТ -->
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
+    <meta name="theme-color" content="#7c3aed">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Smart Social">
+
+    <script src="config.js"></script>
+    <script src="i18n.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
+            --bg-secondary: #ffffff;
+            --text-primary: #1e1e2f;
+            --text-secondary: #6b6b80;
+            --accent: #7c3aed;
+            --border: #e9d9ff;
+            --shadow: rgba(124, 58, 237, 0.1);
+            --danger: #ef4444;
+        }
+        [data-theme="dark"] {
+            --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
+            --bg-secondary: #2a1a3e;
+            --text-primary: #f5f0ff;
+            --text-secondary: #c4b5fd;
+            --accent: #a78bfa;
+            --border: #4c1d95;
+            --shadow: rgba(167, 139, 250, 0.2);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); display: flex; flex-direction: column; padding-bottom: 80px; }
+
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); position: sticky; top: 0; z-index: 100; }
+        .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+        .btn-sm:hover { background: var(--border); color: var(--text-primary); }
+        .btn-danger { border-color: var(--danger); color: var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        .btn-success { border-color: #10b981; color: #10b981; }
+        .btn-success:hover { background: #10b981; color: white; }
+
+        .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 16px; flex: 1; }
+        .page-title { font-size: 24px; margin-bottom: 20px; text-align: center; }
+        
+        .section-header { font-size: 16px; font-weight: 600; margin: 24px 0 12px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+        .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .user-list { display: flex; flex-direction: column; gap: 12px; }
+        .user-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); }
+        
+        .user-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; cursor: pointer; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .user-info { flex: 1; min-width: 0; cursor: pointer; }
+        .user-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-bio { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .user-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        .empty-state { text-align: center; padding: 30px 20px; color: var(--text-secondary); font-size: 14px; background: var(--bg-secondary); border-radius: 16px; border: 1px dashed var(--border); }
+
+        /* Виджеты */
+        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
+        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
+        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
+        .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
+        <div class="controls">
+            <a href="feed.html" class="btn-sm">📰 Лента</a>
+            <a href="search.html" class="btn-sm">🔍 Поиск</a>
+            <a href="chat.html" class="btn-sm"> Чат</a>
+            <a href="guests.html" class="btn-sm">👀 Гости</a>
+            <button class="btn-sm" id="logoutBtn">Выйти</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">👥 Мои друзья</h1>
+
+        <div class="section-header">Друзья <span id="friendsCount" style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(0)</span></div>
+        <div class="user-list" id="friendsList">
+            <div class="empty-state">Загрузка...</div>
+        </div>
+
+        <div class="section-header">Заявки в друзья <span id="requestsCount" style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(0)</span></div>
+        <div class="user-list" id="requestsList">
+            <div class="empty-state">Загрузка...</div>
+        </div>
+    </div>
+
+    <!-- Виджеты -->
+    <div class="angel-widget">
+        <div class="angel-window" id="angelWindow">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <strong>Ангел-Хранитель</strong>
+                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
+            </div>
+            <p style="font-size:14px; color:var(--text-secondary)">Друзья — это семья, которую мы выбираем сами. Береги их! 👼</p>
+        </div>
+        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
+    </div>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <script>
+        if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
+
+        // Тема
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+        themeToggle.onclick = () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        };
+
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'index.html';
+            currentUser = session.user;
+            
+            loadFriends();
+            loadRequests();
+        }
+
+        // Загрузка списка Друзей (status = 'accepted')
+        async function loadFriends() {
+            const list = document.getElementById('friendsList');
+            const countSpan = document.getElementById('friendsCount');
+            
+            const { data: friendships } = await supabaseClient
+                .from('friendships')
+                .select('id, requester_id, addressee_id')
+                .eq('status', 'accepted')
+                .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+
+            if (!friendships || friendships.length === 0) {
+                list.innerHTML = '<div class="empty-state">У тебя пока нет друзей. Найди их через поиск! 🔍</div>';
+                countSpan.textContent = '(0)';
+                return;
+            }
+
+            countSpan.textContent = `(${friendships.length})`;
+            const partnerIds = friendships.map(f => f.requester_id === currentUser.id ? f.addressee_id : f.requester_id);
+            
+            const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', partnerIds);
+            
+            // Сопоставляем ID дружбы с пользователем для кнопки удаления
+            const userMap = {};
+            users.forEach(u => {
+                const friendship = friendships.find(f => f.requester_id === u.id || f.addressee_id === u.id);
+                userMap[u.id] = { ...u, friendshipId: friendship.id };
+            });
+
+            list.innerHTML = users.map(u => `
+                <div class="user-card">
+                    <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
+                        ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
+                    </div>
+                    <div class="user-info" onclick="location.href='profile.html?user_id=${u.id}'">
+                        <div class="user-name">${u.username || 'Аноним'}</div>
+                        <div class="user-bio">${u.bio || 'Без статуса'}</div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn-sm btn-danger" onclick="removeFriend('${u.friendshipId}', '${u.username || 'пользователя'}')">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Загрузка Заявок (status = 'pending', где мы addressee)
+        async function loadRequests() {
+            const list = document.getElementById('requestsList');
+            const countSpan = document.getElementById('requestsCount');
+
+            const { data: requests } = await supabaseClient
+                .from('friendships')
+                .select('id, requester_id')
+                .eq('status', 'pending')
+                .eq('addressee_id', currentUser.id);
+
+            if (!requests || requests.length === 0) {
+                list.innerHTML = '<div class="empty-state">Нет новых заявок 🌙</div>';
+                countSpan.textContent = '(0)';
+                return;
+            }
+
+            countSpan.textContent = `(${requests.length})`;
+            const requesterIds = requests.map(r => r.requester_id);
+            const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', requesterIds);
+
+            const userMap = {};
+            users.forEach(u => {
+                const req = requests.find(r => r.requester_id === u.id);
+                userMap[u.id] = { ...u, requestId: req.id };
+            });
+
+            list.innerHTML = users.map(u => `
+                <div class="user-card">
+                    <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
+                        ${u.avatar_url ? `<img src="${u.avatar_url}">` : ''}
+                    </div>
+                    <div class="user-info" onclick="location.href='profile.html?user_id=${u.id}'">
+                        <div class="user-name">${u.username || 'Аноним'}</div>
+                        <div class="user-bio">${u.bio || 'Без статуса'}</div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn-sm btn-success" onclick="handleRequest('${u.requestId}', 'accepted')">Принять</button>
+                        <button class="btn-sm btn-danger" onclick="handleRequest('${u.requestId}', 'rejected')">Отклонить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Удаление из друзей
+        async function removeFriend(friendshipId, name) {
+            if (confirm(`Удалить ${name} из друзей?`)) {
+                const { error } = await supabaseClient.from('friendships').delete().eq('id', friendshipId);
+                if (!error) {
+                    loadFriends();
+                    loadRequests(); // На случай, если нужно обновить счетчики
+                } else {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+        }
+
+        // Принять или отклонить заявку
+        async function handleRequest(requestId, newStatus) {
+            const action = newStatus === 'accepted' ? 'принять' : 'отклонить';
+            if (confirm(`Вы уверены, что хотите ${action} заявку?`)) {
+                const { error } = await supabaseClient.from('friendships').update({ status: newStatus }).eq('id', requestId);
+                if (!error) {
+                    loadFriends();
+                    loadRequests();
+                } else {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
