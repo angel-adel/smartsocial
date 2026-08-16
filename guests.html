@@ -3,27 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <link rel="manifest" href="./manifest.json">
-        <!-- Favicon для всех браузеров -->
+    <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
-    
-    <!-- Для iPhone/iPad -->
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Smart Social">
-    
-    <!-- Для Android / PWA -->
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
-    
-    <!-- Цвет вкладки браузера (под твой фиолетовый стиль) -->
     <meta name="theme-color" content="#7c3aed">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Smart Social">
     <title>Гости | Smart Social</title>
+    
     <script src="config.js"></script>
     <script src="i18n.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
@@ -50,121 +41,69 @@
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
         .controls { display: flex; gap: 10px; align-items: center; }
         select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
-        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+        .btn-sm:hover { background: var(--border); color: var(--text-primary); }
+        .profile-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); background: var(--border); cursor: pointer; overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+        .nav-item { position: relative; display: inline-flex; align-items: center; }
+        .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
+        .badge.show { display: inline-block; }
+        .burger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); padding: 0 10px; }
+
+        @media (max-width: 768px) {
+            .burger-btn { display: block; }
+            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 99; }
+            .controls.active { display: flex; }
+            .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
+        }
 
         .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
-        
         .page-title { font-size: 24px; margin-bottom: 20px; text-align: center; }
-        
         .guest-list { display: flex; flex-direction: column; gap: 12px; }
-        .guest-item { 
-            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; 
-            padding: 14px; display: flex; align-items: center; gap: 14px; 
-            box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: inherit;
-        }
-        .guest-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow); }
-        
-        .guest-avatar { 
-            width: 50px; height: 50px; border-radius: 50%; background: var(--border); 
-            display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; 
-        }
+        .guest-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: inherit; transition: transform 0.2s; }
+        .guest-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+        .guest-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; }
         .guest-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        
         .guest-info { flex: 1; }
         .guest-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
         .guest-time { font-size: 12px; color: var(--text-secondary); }
-        
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
 
         .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
         .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
         .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
-                /* === СТИЛИ ДЛЯ БУРГЕР-МЕНЮ И БЕЙДЖЕЙ === */
-        
-        /* Красный кружок счетчика */
-        .badge { 
-            background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; 
-            border-radius: 10px; margin-left: 4px; font-weight: bold; 
-            display: none; /* Скрыт по умолчанию */
-        }
-        .badge.show { display: inline-block; } /* Показываем, если есть цифра */
-
-        /* Кнопка Бургера (скрыта на ПК) */
-        .burger-btn { 
-            display: none; background: none; border: none; font-size: 24px; 
-            cursor: pointer; color: var(--text-primary); padding: 0 10px; 
-        }
-
-        /* АДАПТИВ ДЛЯ МОБИЛЬНЫХ (экраны меньше 768px) */
-        @media (max-width: 768px) {
-            .burger-btn { display: block; } /* Показываем бургер */
-            
-            .controls {
-                display: none; /* Скрываем меню по умолчанию */
-                position: absolute;
-                top: 100%; /* Сразу под шапкой */
-                left: 0; right: 0;
-                background: var(--bg-secondary);
-                flex-direction: column;
-                padding: 15px;
-                border-bottom: 1px solid var(--border);
-                box-shadow: 0 4px 12px var(--shadow);
-                z-index: 99;
-            }
-            
-            .controls.active { display: flex; } /* Показываем при клике на бургер */
-            
-            /* Растягиваем кнопки на всю ширину в мобильном меню */
-            .controls a, .controls button, .controls select { 
-                width: 100%; margin: 5px 0; text-align: center; 
-            }
-        }
     </style>
 </head>
 <body>
-
     <header>
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
-        
-        <!-- Кнопка Бургера (появится только на телефоне) -->
         <button class="burger-btn" id="burgerBtn">☰</button>
-
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇷🇺 RU</option>
-                <option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬🇧 EN</option>
-                <option value="es">🇪🇸 ES</option>
-                <option value="de">🇩🇪 DE</option>
+                <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩🇪 DE</option>
             </select>
-
-            <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
-                <span id="headerAvatar">👤</span>
-            </button>
-
+            <button class="profile-btn" onclick="location.href='profile.html'"><span id="headerAvatar"></span></button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            
-            <!-- Добавили span с id="chatBadge" -->
-            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">
-                💬 Чат <span id="chatBadge" class="badge">0</span>
-            </a>
-            
-            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
+            <div class="nav-item">
+                <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
+                <span id="chatBadge" class="badge">0</span>
+            </div>
+            <a href="friends.html" class="btn-sm" data-i18n="nav_friends"> Друзья</a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
-            
-            <!-- Добавили span с id="guestBadge" -->
-            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">
-                👀 Гости <span id="guestBadge" class="badge">0</span>
-            </a>
-            
+            <div class="nav-item">
+                <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
+                <span id="guestBadge" class="badge">0</span>
+            </div>
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
 
     <div class="container">
-        <h1 class="page-title">👀 Мои гости</h1>
+        <h1 class="page-title" data-i18n="guests_title">👀 Мои гости</h1>
         <div class="guest-list" id="guestList">
             <div class="empty-state">Загрузка...</div>
         </div>
@@ -172,8 +111,11 @@
 
     <div class="angel-widget">
         <div class="angel-window" id="angelWindow">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Ангел-Хранитель</strong><span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span></div>
-            <p style="font-size:14px; color:var(--text-secondary)">Кто-то тайно наблюдал за тобой... или просто зашёл поздороваться! 👼</p>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <strong>Ангел-Хранитель</strong>
+                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'"></span>
+            </div>
+            <p style="font-size:14px; color:var(--text-secondary)">Кто-то проявил к тебе интерес. Ответь взаимностью или просто улыбнись! 👼</p>
         </div>
         <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
     </div>
@@ -183,55 +125,24 @@
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null;
-        
-                // === ЛОГИКА БУРГЕР-МЕНЮ ===
+
         const burgerBtn = document.getElementById('burgerBtn');
         const navControls = document.getElementById('navControls');
-        
         if (burgerBtn && navControls) {
-            // Открыть/закрыть меню
             burgerBtn.onclick = () => navControls.classList.toggle('active');
-            
-            // Автоматически закрывать меню при клике на любую ссылку
-            navControls.querySelectorAll('a').forEach(link => {
-                link.onclick = () => navControls.classList.remove('active');
-            });
+            navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
         }
 
-        // === ЛОГИКА КРАСНЫХ СЧЕТЧИКОВ (БЕЙДЖЕЙ) ===
         async function updateBadges() {
             if (!currentUser) return;
-
-            // 1. Счетчик непрочитанных гостей
-            const { count: guestCount } = await supabaseClient
-                .from('profile_visits')
-                .select('*', { count: 'exact', head: true })
-                .eq('host_id', currentUser.id)
-                .eq('is_read', false);
-
+            const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
             const gBadge = document.getElementById('guestBadge');
-            if (gBadge) {
-                gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
-                if (guestCount > 0) gBadge.classList.add('show'); 
-                else gBadge.classList.remove('show');
-            }
-
-            // 2. Счетчик непрочитанных сообщений
-            const { count: msgCount } = await supabaseClient
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('receiver_id', currentUser.id)
-                .eq('is_read', false);
-
+            if (gBadge) { gBadge.textContent = guestCount > 99 ? '99+' : guestCount; guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show'); }
+            const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
             const cBadge = document.getElementById('chatBadge');
-            if (cBadge) {
-                cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
-                if (msgCount > 0) cBadge.classList.add('show'); 
-                else cBadge.classList.remove('show');
-            }
+            if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
         }
 
-        // Тема
         const themeToggle = document.getElementById('themeToggle');
         if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
@@ -241,69 +152,46 @@
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
-        // Язык
-        const langSelect = document.getElementById('langSelect');
-        langSelect.value = localStorage.getItem('lang') || 'ru';
-        if (typeof applyLanguage === 'function') applyLanguage(langSelect.value);
-        langSelect.onchange = (e) => { localStorage.setItem('lang', e.target.value); if(typeof applyLanguage === 'function') applyLanguage(e.target.value); };
-
-        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
-
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
+
+            // СБРОС СЧЕТЧИКА ГОСТЕЙ: Помечаем все визиты как прочитанные
+            await supabaseClient.from('profile_visits').update({ is_read: true }).eq('host_id', currentUser.id).eq('is_read', false);
+
+            updateBadges();
             loadGuests();
         }
 
         async function loadGuests() {
             const list = document.getElementById('guestList');
+            const { data: visits } = await supabaseClient.from('profile_visits').select('visitor_id, visited_at').eq('host_id', currentUser.id).order('visited_at', { ascending: false });
             
-            // 1. Получаем все визиты к нам (отсортированные по времени)
-            const { data: visits, error } = await supabaseClient
-                .from('profile_visits')
-                .select('*')
-                .eq('host_id', currentUser.id)
-                .order('visited_at', { ascending: false });
-
-            if (error || !visits || visits.length === 0) {
-                list.innerHTML = '<div class="empty-state">Пока никто не заходил в гости. Но это только вопрос времени! 🌙</div>';
+            if (!visits || visits.length === 0) {
+                list.innerHTML = '<div class="empty-state" data-i18n="guests_empty">Пока никто не заходил в гости 🌙</div>';
                 return;
             }
 
-            // 2. Собираем уникальные ID гостей (чтобы не дублировать одного и того же человека 10 раз)
-            const uniqueVisitorIds = [...new Set(visits.map(v => v.visitor_id))];
-            
-            // 3. Получаем данные пользователей (аватарки и имена)
-            const { data: users } = await supabaseClient
-                .from('users')
-                .select('id, username, avatar_url')
-                .in('id', uniqueVisitorIds);
+            const visitorIds = visits.map(v => v.visitor_id);
+            const { data: users } = await supabaseClient.from('users').select('id, username, avatar_url').in('id', visitorIds);
 
-            if (!users) return;
-
-            // 4. Рендерим список
-            list.innerHTML = users.map(user => {
-                // Находим время последнего визита этого пользователя
-                const lastVisit = visits.find(v => v.visitor_id === user.id);
+            list.innerHTML = users.map(u => {
+                const lastVisit = visits.find(v => v.visitor_id === u.id);
                 const time = new Date(lastVisit.visited_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-                
-                const avatarHtml = user.avatar_url 
-                    ? `<img src="${user.avatar_url}">` 
-                    : '';
-
+                const avatarHtml = u.avatar_url ? `<img src="${u.avatar_url}">` : '👤';
                 return `
-                <a href="profile.html?user_id=${user.id}" class="guest-item">
+                <a href="profile.html?user_id=${u.id}" class="guest-card">
                     <div class="guest-avatar">${avatarHtml}</div>
                     <div class="guest-info">
-                        <div class="guest-name">${user.username || 'Аноним'}</div>
-                        <div class="guest-time">Зашёл(а): ${time}</div>
+                        <div class="guest-name">${u.username || 'Аноним'}</div>
+                        <div class="guest-time">Был(а) ${time}</div>
                     </div>
-                </a>
-                `;
+                </a>`;
             }).join('');
         }
 
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
         init();
     </script>
 </body>
