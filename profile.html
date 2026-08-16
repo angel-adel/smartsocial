@@ -194,17 +194,28 @@
 
             // 6. УПРАВЛЕНИЕ КНОПКАМИ
             if (isGuest) {
-                // === ЗАПИСЬ ГОСТЯ С ПРОВЕРКОЙ ОШИБОК ===
-                const { error } = await supabaseClient.from('profile_visits').insert([
-                    { host_id: targetUserId, visitor_id: currentUser.id }
-                ]);
-                
-                if (error) {
-                    console.error('❌ Ошибка при записи гостя:', error);
-                } else {
-                    console.log('✅ Гость успешно записан!');
-                }
-                // ==========================================
+                // === УМНАЯ ЗАПИСЬ ГОСТЯ (UPSERT) ===
+const { data, error } = await supabaseClient
+    .from('profile_visits')
+    .upsert(
+        { 
+            host_id: targetUserId, 
+            visitor_id: currentUser.id,
+            is_read: false,
+            visited_at: new Date().toISOString() // Обновляем время на "прямо сейчас"
+        },
+        { 
+            onConflict: 'host_id,visitor_id' // Ключевая магия: если такая пара уже есть, обновляем её
+        }
+    )
+    .select();
+
+if (error) {
+    console.error('❌ Ошибка при записи гостя:', error.message);
+} else {
+    console.log('✅ Визит успешно записан или обновлен!', data);
+}
+// ==========================================
 
                 document.getElementById('editBtn').style.display = 'none';
                 document.querySelector('.avatar-edit').style.display = 'none';
