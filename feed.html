@@ -5,13 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Smart Social">
     <title>Лента | Smart Social</title>
     
@@ -53,9 +49,10 @@
         .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
 
         /* === БУРГЕР И БЕЙДЖИ === */
-        .burger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); padding: 0 10px; }
+        .nav-item { position: relative; display: inline-flex; align-items: center; }
         .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
         .badge.show { display: inline-block; }
+        .burger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); padding: 0 10px; }
 
         @media (max-width: 768px) {
             .burger-btn { display: block; }
@@ -65,7 +62,7 @@
                 border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 99;
             }
             .controls.active { display: flex; }
-            .controls a, .controls button, .controls select { width: 100%; margin: 5px 0; text-align: center; }
+            .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
         }
 
         .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
@@ -96,7 +93,6 @@
         .play-btn { width: 100%; padding: 15px; background: var(--bg-primary); border: none; color: var(--accent); font-weight: 600; cursor: pointer; }
         .player-frame { display: none; width: 100%; aspect-ratio: 16/9; background: #000; }
         .player-frame iframe, .player-frame video { width: 100%; height: 100%; border: none; }
-        .player-frame audio { width: 100%; margin-top: 10px; }
 
         .post-footer { display: flex; align-items: center; gap: 20px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); }
         .like-btn { background: none; border: none; cursor: pointer; font-size: 20px; display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
@@ -114,21 +110,31 @@
 
     <header>
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
-        <button class="burger-btn" id="burgerBtn">☰</button>
+        <button class="burger-btn" id="burgerBtn"></button>
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩🇪 DE</option>
+                <option value="ru">🇺 RU</option><option value="uk">🇺🇦 UA</option>
+                <option value="en">🇬 EN</option><option value="es">🇸 ES</option><option value="de">🇩🇪 DE</option>
             </select>
             <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
                 <span id="headerAvatar">👤</span>
             </button>
-            <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
+            <a href="feed.html" class="btn-sm" data-i18n="nav_feed"> Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат <span id="chatBadge" class="badge">0</span></a>
+            
+            <div class="nav-item">
+                <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
+                <span id="chatBadge" class="badge">0</span>
+            </div>
+            
             <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
-            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости <span id="guestBadge" class="badge">0</span></a>
+            
+            <div class="nav-item">
+                <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
+                <span id="guestBadge" class="badge">0</span>
+            </div>
+            
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
@@ -198,7 +204,7 @@
 
         // === ТЕМА ===
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '️'; }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
@@ -214,7 +220,7 @@
             const { data: u } = await supabaseClient.from('users').select('avatar_url').eq('id', currentUser.id).single();
             if (u && u.avatar_url) document.getElementById('headerAvatar').innerHTML = `<img src="${u.avatar_url}">`;
 
-            updateBadges(); // Обновляем счетчики
+            updateBadges(); 
             checkNightMode();
             checkDailyLimit();
             loadPosts();
@@ -324,7 +330,7 @@
                     ${readMoreBtn}${mediaHtml}
                     <div class="post-footer">
                         <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}', this)">
-                            ${isLiked ? '❤️' : '🤍'} <span>${postLikes.length}</span>
+                            ${isLiked ? '❤️' : ''} <span>${postLikes.length}</span>
                         </button>
                         ${isOwner ? `<div class="edit-del">
                             <button class="icon-btn" onclick="editPost('${post.id}', \`${post.content.replace(/`/g, '\\`')}\`)">✏️</button>
