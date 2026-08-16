@@ -59,6 +59,19 @@
         .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; }
         .avatar img { width: 100%; height: 100%; object-fit: cover; }
         .username { font-weight: 600; font-size: 15px; }
+        
+        /* СТИЛИ ДЛЯ КЛИКАБЕЛЬНОГО АВТОРА */
+        .author-link { 
+            text-decoration: none; 
+            color: inherit; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            cursor: pointer; 
+            transition: opacity 0.2s;
+        }
+        .author-link:hover { opacity: 0.7; }
+        
         .timestamp { font-size: 12px; color: var(--text-secondary); margin-left: auto; }
         
         .post-content { font-size: 16px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 12px; }
@@ -267,7 +280,6 @@
             }
             btn.disabled = false; 
             btn.textContent = 'Опубликовать';
-            // На всякий случай повторно проверяем ночной режим и лимит (чтобы статус кнопки был актуальным)
             checkNightMode();
             checkDailyLimit();
         };
@@ -346,11 +358,16 @@
                 return `
                 <div class="feed-item">
                     <div class="feed-header">
-                        <div class="avatar">${avatarHtml}</div>
-                        <span class="username">${author}</span>
+                        <a href="profile.html?user_id=${post.user_id}" class="author-link">
+                            <div class="avatar">${avatarHtml}</div>
+                            <span class="username">${author}</span>
+                        </a>
                         <span class="timestamp">${new Date(post.created_at).toLocaleString()}</span>
                     </div>
+                    
+                    <!-- ТЕКСТ ПОСТА (ВЕРНУЛИ НА МЕСТО) -->
                     <div class="${contentClass}">${post.content}</div>
+                    
                     ${readMoreBtn}
                     ${mediaHtml}
                     <div class="post-footer">
