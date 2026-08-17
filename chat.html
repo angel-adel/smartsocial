@@ -13,6 +13,7 @@
     
     <script src="config.js"></script>
     <script src="i18n.js"></script>
+    <script src="angel-widget.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -52,11 +53,11 @@
         .nav-item { position: relative; display: inline-flex; align-items: center; }
         .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
         .badge.show { display: inline-block; }
-        .burger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); padding: 0 10px; }
+        .burger-btn { display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-primary); padding: 8px 12px; min-width: 44px; min-height: 44px; }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .burger-btn { display: block; }
-            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 99; }
+            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 101; max-height: 80vh; overflow-y: auto; }
             .controls.active { display: flex; }
             .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
             
@@ -96,9 +97,6 @@
         .send-btn svg { width: 20px; height: 20px; fill: white; margin-left: 2px; }
         .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px; }
 
-        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
-        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
-        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
     </style>
 </head>
@@ -108,10 +106,10 @@
         <button class="burger-btn" id="burgerBtn">☰</button>
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
-                <option value="en">🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩🇪 DE</option>
+                <option value="ru">🇷🇺 RU</option><option value="uk">🇺 UA</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩 DE</option>
             </select>
-            <button class="profile-btn" onclick="location.href='profile.html'"><span id="headerAvatar">👤</span></button>
+            <button class="profile-btn" onclick="location.href='profile.html'"><span id="headerAvatar"></span></button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
             <div class="nav-item">
@@ -137,16 +135,6 @@
         </div>
     </div>
 
-    <div class="angel-widget">
-        <div class="angel-window" id="angelWindow">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <strong>Ангел-Хранитель</strong>
-                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
-            </div>
-            <p style="font-size:14px; color:var(--text-secondary)">Общайся вежливо и с душой. Твои слова могут сделать чей-то день лучше! 👼</p>
-        </div>
-        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
-    </div>
     <button class="theme-toggle" id="themeToggle">🌙</button>
 
     <script>
@@ -179,7 +167,7 @@
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            themeToggle.textContent = isDark ? '🌙' : '️';
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
@@ -190,7 +178,7 @@
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
 
-            // СБРОС СЧЕТЧИКА СООБЩЕНИЙ: Помечаем все входящие как прочитанные
+            // СБРОС СЧЕТЧИКА СООБЩЕНИЙ
             await supabaseClient.from('messages').update({ is_read: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
 
             const chatPartnerId = localStorage.getItem('chatPartnerId');
@@ -218,7 +206,7 @@
             list.innerHTML = users.map(u => {
                 const lastMsg = msgs.find(m => (m.sender_id === u.id && m.receiver_id === currentUser.id) || (m.sender_id === currentUser.id && m.receiver_id === u.id));
                 const preview = lastMsg.sender_id === currentUser.id ? `Вы: ${lastMsg.content}` : `${u.username}: ${lastMsg.content}`;
-                const avatarHtml = u.avatar_url ? `<img src="${u.avatar_url}">` : '👤';
+                const avatarHtml = u.avatar_url ? `<img src="${u.avatar_url}">` : '';
                 return `<div class="conv-item" onclick="openChat('${u.id}')">
                     <div class="conv-avatar">${avatarHtml}</div>
                     <div class="conv-info"><div class="conv-name">${u.username || 'Аноним'}</div><div class="conv-preview">${preview}</div></div>
@@ -230,7 +218,7 @@
             activePartnerId = partnerId;
             const partner = partnersData[partnerId];
             activePartnerName = partner.username || 'Аноним';
-            const avatarHtml = partner.avatar_url ? `<img src="${partner.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : '👤';
+            const avatarHtml = partner.avatar_url ? `<img src="${partner.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : '';
             document.getElementById('chatWindow').innerHTML = `
                 <div class="chat-header">${avatarHtml}<span>${activePartnerName}</span></div>
                 <div class="messages-area" id="messagesArea">Загрузка...</div>
