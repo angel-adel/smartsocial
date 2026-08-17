@@ -3,24 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поиск | Smart Social</title>
-    
-    <!-- ИКОНКИ И МАНИФЕСТ -->
+    <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
     <meta name="theme-color" content="#7c3aed">
-    <link rel="manifest" href="./manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Smart Social">
-    <!-- КОНЕЦ ИКОНОК -->
-
+    <title>Поиск | Smart Social</title>
+    
     <script src="config.js"></script>
     <script src="i18n.js"></script>
+    <script src="angel-widget.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
@@ -41,150 +36,83 @@
             --shadow: rgba(167, 139, 250, 0.2);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
-        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); display: flex; flex-direction: column; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); padding-bottom: 80px; }
 
-        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); position: sticky; top: 0; z-index: 100; }
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
         .controls { display: flex; gap: 10px; align-items: center; }
-        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; }
+        select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
+        .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+        .btn-sm:hover { background: var(--border); color: var(--text-primary); }
+        .profile-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); background: var(--border); cursor: pointer; overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-        .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 16px; flex: 1; }
+        .nav-item { position: relative; display: inline-flex; align-items: center; }
+        .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
+        .badge.show { display: inline-block; }
+        .burger-btn { display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-primary); padding: 8px 12px; min-width: 44px; min-height: 44px; }
 
-        /* Стили поиска */
-        .search-bar { display: flex; gap: 10px; margin-bottom: 24px; }
-        .search-input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 20px; background: var(--bg-secondary); color: var(--text-primary); font-size: 15px; outline: none; box-shadow: 0 2px 8px var(--shadow); }
+        @media (max-width: 900px) {
+            .burger-btn { display: block; }
+            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 101; max-height: 80vh; overflow-y: auto; }
+            .controls.active { display: flex; }
+            .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
+        }
+
+        .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 16px; }
+        .search-box { background: var(--bg-secondary); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); margin-bottom: 24px; }
+        .search-input { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-primary); color: var(--text-primary); font-size: 16px; outline: none; }
         .search-input:focus { border-color: var(--accent); }
-        .search-btn { background: var(--accent); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 8px var(--shadow); }
-        .search-btn svg { width: 20px; height: 20px; fill: white; }
 
-        .results-list { display: flex; flex-direction: column; gap: 12px; }
-        .user-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: inherit; }
-        .user-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow); border-color: var(--accent); }
-        
+        .results-header { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--accent); }
+        .user-list { display: flex; flex-direction: column; gap: 12px; }
+        .user-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); cursor: pointer; }
+        .user-card:hover { transform: translateY(-2px); border-color: var(--accent); }
         .user-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; }
         .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        
         .user-info { flex: 1; min-width: 0; }
         .user-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .user-bio { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .view-profile-btn { background: var(--bg-primary); border: 1px solid var(--border); color: var(--accent); padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+        .empty-state { text-align: center; padding: 30px 20px; color: var(--text-secondary); font-size: 14px; background: var(--bg-secondary); border-radius: 16px; border: 1px dashed var(--border); }
 
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
-        .empty-state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
-
-        /* Виджеты */
-        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
-        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
-        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
-                /* === СТИЛИ ДЛЯ БУРГЕР-МЕНЮ И БЕЙДЖЕЙ === */
-        
-        /* Красный кружок счетчика */
-        .badge { 
-            background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; 
-            border-radius: 10px; margin-left: 4px; font-weight: bold; 
-            display: none; /* Скрыт по умолчанию */
-        }
-        .badge.show { display: inline-block; } /* Показываем, если есть цифра */
-
-        /* Кнопка Бургера (скрыта на ПК) */
-        .burger-btn { 
-            display: none; background: none; border: none; font-size: 24px; 
-            cursor: pointer; color: var(--text-primary); padding: 0 10px; 
-        }
-
-        /* АДАПТИВ ДЛЯ МОБИЛЬНЫХ (экраны меньше 768px) */
-        @media (max-width: 768px) {
-            .burger-btn { display: block; } /* Показываем бургер */
-            
-            .controls {
-                display: none; /* Скрываем меню по умолчанию */
-                position: absolute;
-                top: 100%; /* Сразу под шапкой */
-                left: 0; right: 0;
-                background: var(--bg-secondary);
-                flex-direction: column;
-                padding: 15px;
-                border-bottom: 1px solid var(--border);
-                box-shadow: 0 4px 12px var(--shadow);
-                z-index: 99;
-            }
-            
-            .controls.active { display: flex; } /* Показываем при клике на бургер */
-            
-            /* Растягиваем кнопки на всю ширину в мобильном меню */
-            .controls a, .controls button, .controls select { 
-                width: 100%; margin: 5px 0; text-align: center; 
-            }
-        }
     </style>
 </head>
 <body>
     <header>
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
-        
-        <!-- Кнопка Бургера (появится только на телефоне) -->
         <button class="burger-btn" id="burgerBtn">☰</button>
-
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇷🇺 RU</option>
-                <option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬🇧 EN</option>
-                <option value="es">🇪🇸 ES</option>
-                <option value="de">🇩🇪 DE</option>
+                <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩🇪 DE</option>
             </select>
-
-            <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
-                <span id="headerAvatar">👤</span>
-            </button>
-
+            <button class="profile-btn" onclick="location.href='profile.html'"><span id="headerAvatar"></span></button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            
-            <!-- Добавили span с id="chatBadge" -->
-            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">
-                💬 Чат <span id="chatBadge" class="badge">0</span>
-            </a>
-            
-            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
+            <div class="nav-item">
+                <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
+                <span id="chatBadge" class="badge">0</span>
+            </div>
+            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья <span id="friendsBadge" class="badge">0</span></a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
-            
-            <!-- Добавили span с id="guestBadge" -->
-            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">
-                👀 Гости <span id="guestBadge" class="badge">0</span>
-            </a>
-            
+            <div class="nav-item">
+                <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
+                <span id="guestBadge" class="badge">0</span>
+            </div>
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
+
     <div class="container">
-        <div class="search-bar">
+        <div class="search-box">
             <input type="text" id="searchInput" class="search-input" placeholder="Поиск по имени или статусу...">
-            <button class="search-btn" onclick="performSearch()">
-                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-            </button>
         </div>
 
-        <div class="results-list" id="resultsList">
-            <div class="empty-state">
-                <div class="empty-state-icon">🔍</div>
-                <div>Введите имя или статус, чтобы найти людей</div>
-            </div>
+        <div class="results-header" id="resultsHeader" style="display: none;">Результаты поиска</div>
+        <div class="user-list" id="searchResults">
+            <div class="empty-state">Начни вводить имя, чтобы найти друзей 🔍</div>
         </div>
-    </div>
-
-    <!-- Виджет Ангела-Хранителя и Смена темы -->
-    <div class="angel-widget">
-        <div class="angel-window" id="angelWindow">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <strong>Ангел-Хранитель</strong>
-                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
-            </div>
-            <p style="font-size:14px; color:var(--text-secondary)">Ищи друзей с открытым сердцем. Возможно, твой идеальный собеседник уже здесь! 👼</p>
-        </div>
-        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
     </div>
 
     <button class="theme-toggle" id="themeToggle">🌙</button>
@@ -194,59 +122,33 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null;
 
-                // === ЛОГИКА БУРГЕР-МЕНЮ ===
+        // === БУРГЕР-МЕНЮ ===
         const burgerBtn = document.getElementById('burgerBtn');
         const navControls = document.getElementById('navControls');
-        
         if (burgerBtn && navControls) {
-            // Открыть/закрыть меню
             burgerBtn.onclick = () => navControls.classList.toggle('active');
-            
-            // Автоматически закрывать меню при клике на любую ссылку
-            navControls.querySelectorAll('a').forEach(link => {
-                link.onclick = () => navControls.classList.remove('active');
-            });
+            navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
         }
 
-        // === ЛОГИКА КРАСНЫХ СЧЕТЧИКОВ (БЕЙДЖЕЙ) ===
+        // === СЧЕТЧИКИ (БЕЙДЖИ) ===
         async function updateBadges() {
             if (!currentUser) return;
-
-            // 1. Счетчик непрочитанных гостей
-            const { count: guestCount } = await supabaseClient
-                .from('profile_visits')
-                .select('*', { count: 'exact', head: true })
-                .eq('host_id', currentUser.id)
-                .eq('is_read', false);
-
+            const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
             const gBadge = document.getElementById('guestBadge');
-            if (gBadge) {
-                gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
-                if (guestCount > 0) gBadge.classList.add('show'); 
-                else gBadge.classList.remove('show');
-            }
-
-            // 2. Счетчик непрочитанных сообщений
-            const { count: msgCount } = await supabaseClient
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('receiver_id', currentUser.id)
-                .eq('is_read', false);
-
+            if (gBadge) { gBadge.textContent = guestCount > 99 ? '99+' : guestCount; guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show'); }
+            
+            const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
             const cBadge = document.getElementById('chatBadge');
-            if (cBadge) {
-                cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
-                if (msgCount > 0) cBadge.classList.add('show'); 
-                else cBadge.classList.remove('show');
-            }
+            if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
+            
+            const { count: friendReqCount } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
+            const fBadge = document.getElementById('friendsBadge');
+            if (fBadge) { fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount; friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show'); }
         }
 
-        // ===== ТЕМА =====
+        // === ТЕМА ===
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { 
-            document.documentElement.setAttribute('data-theme', 'dark'); 
-            themeToggle.textContent = '☀️'; 
-        }
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
@@ -254,89 +156,75 @@
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
-        // ===== ЯЗЫК =====
-        const langSelect = document.getElementById('langSelect'); // Если понадобится в будущем
-        if (typeof applyLanguage === 'function') applyLanguage('ru');
-
-        document.getElementById('logoutBtn').onclick = async () => { 
-            await supabaseClient.auth.signOut(); 
-            window.location.href = 'index.html'; 
-        };
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
 
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
+            
+            // Загружаем аватар в шапку
+            const { data: u } = await supabaseClient.from('users').select('avatar_url').eq('id', currentUser.id).single();
+            if (u && u.avatar_url) document.getElementById('headerAvatar').innerHTML = `<img src="${u.avatar_url}">`;
+
+            updateBadges();
         }
 
-        // ===== ПОИСК =====
-        async function performSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            const resultsList = document.getElementById('resultsList');
-
-            if (query.length < 2) {
-                resultsList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">✏️</div>
-                        <div>Введите минимум 2 символа для поиска</div>
-                    </div>`;
-                return;
-            }
-
-            resultsList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-secondary)">Ищем...</div>';
-
-            // Ищем совпадения в имени (username) или статусе (bio)
-            const { data: users, error } = await supabaseClient
-                .from('users')
-                .select('id, username, bio, avatar_url')
-                .or(`username.ilike.%${query}%,bio.ilike.%${query}%`)
-                .limit(20); // Ограничиваем выдачу, чтобы не грузить базу
-
-            if (error || !users || users.length === 0) {
-                resultsList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">😔</div>
-                        <div>Никого не найдено. Попробуй изменить запрос.</div>
-                    </div>`;
-                return;
-            }
-
-            // Рендерим результаты
-            resultsList.innerHTML = users.map(user => {
-                const avatarHtml = user.avatar_url 
-                    ? `<img src="${user.avatar_url}">` 
-                    : '👤';
-                const bioText = user.bio || 'Без статуса';
-
-                return `
-                <a href="profile.html?user_id=${user.id}" class="user-card">
-                    <div class="user-avatar">${avatarHtml}</div>
-                    <div class="user-info">
-                        <div class="user-name">${user.username || 'Аноним'}</div>
-                        <div class="user-bio">${bioText}</div>
-                    </div>
-                    <div class="view-profile-btn">Профиль</div>
-                </a>
-                `;
-            }).join('');
-        }
-
-        // Живой поиск при вводе (с небольшой задержкой, чтобы не спамить базу)
+        // === ПОИСК ===
+        const searchInput = document.getElementById('searchInput');
+        const resultsList = document.getElementById('searchResults');
+        const resultsHeader = document.getElementById('resultsHeader');
         let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', (e) => {
+
+        searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                performSearch();
-            }, 500); // Ждем 500мс после последнего нажатия клавиши
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                resultsList.innerHTML = '<div class="empty-state">Начни вводить имя, чтобы найти друзей 🔍</div>';
+                resultsHeader.style.display = 'none';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => performSearch(query), 300);
         });
 
-        // Поиск по Enter
-        document.getElementById('searchInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                clearTimeout(searchTimeout);
-                performSearch();
+        async function performSearch(query) {
+            resultsList.innerHTML = '<div class="empty-state">Поиск...</div>';
+            resultsHeader.style.display = 'block';
+
+            try {
+                const { data: users, error } = await supabaseClient
+                    .from('users')
+                    .select('id, username, bio, avatar_url')
+                    .ilike('username', `%${query}%`)
+                    .neq('id', currentUser.id) // Исключаем себя из поиска
+                    .limit(20);
+
+                if (error) throw error;
+
+                if (!users || users.length === 0) {
+                    resultsList.innerHTML = '<div class="empty-state">Никого не найдено. Попробуй другой запрос 🌙</div>';
+                    return;
+                }
+
+                resultsHeader.textContent = `Найдено: ${users.length}`;
+                resultsList.innerHTML = users.map(u => `
+                    <div class="user-card" onclick="location.href='profile.html?user_id=${u.id}'">
+                        <div class="user-avatar">
+                            ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">${u.username || 'Аноним'}</div>
+                            <div class="user-bio">${u.bio || 'Без статуса'}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                resultsList.innerHTML = `<div class="empty-state" style="color: var(--danger);">Ошибка поиска: ${err.message}</div>`;
             }
-        });
+        }
 
         init();
     </script>
