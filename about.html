@@ -3,23 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>О сайте | Smart Social</title>
-    
-    <!-- ИКОНКИ И МАНИФЕСТ -->
+    <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
     <meta name="theme-color" content="#7c3aed">
-    <link rel="manifest" href="./manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Smart Social">
-
+    <title>О сайте | Smart Social</title>
+    
     <script src="config.js"></script>
     <script src="i18n.js"></script>
+    <script src="angel-widget.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
@@ -40,244 +36,173 @@
             --shadow: rgba(167, 139, 250, 0.2);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
-        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); display: flex; flex-direction: column; padding-bottom: 80px; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); padding-bottom: 80px; }
 
-        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); position: sticky; top: 0; z-index: 100; }
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
         .btn-sm { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
         .btn-sm:hover { background: var(--border); color: var(--text-primary); }
+        .profile-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); background: var(--border); cursor: pointer; overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-        .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 16px; flex: 1; }
+        .nav-item { position: relative; display: inline-flex; align-items: center; }
+        .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
+        .badge.show { display: inline-block; }
+        .burger-btn { display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-primary); padding: 8px 12px; min-width: 44px; min-height: 44px; }
 
-        /* Стили страницы О сайте */
-        .hero { text-align: center; margin-bottom: 30px; padding: 20px 0; }
-        .hero h1 { font-size: 32px; color: var(--accent); margin-bottom: 10px; }
-        .hero p { font-size: 16px; color: var(--text-secondary); line-height: 1.5; }
+        @media (max-width: 900px) {
+            .burger-btn { display: block; }
+            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 101; max-height: 80vh; overflow-y: auto; }
+            .controls.active { display: flex; }
+            .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
+        }
 
-        .info-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 12px var(--shadow); }
-        .info-card h2 { font-size: 18px; margin-bottom: 12px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
-        .info-card p { font-size: 14px; line-height: 1.6; color: var(--text-primary); margin-bottom: 10px; }
-        .info-card ul { list-style: none; padding-left: 0; }
-        .info-card li { font-size: 14px; padding: 6px 0; border-bottom: 1px dashed var(--border); display: flex; align-items: center; gap: 8px; }
-        .info-card li:last-child { border-bottom: none; }
-
-        .angel-card { background: linear-gradient(135deg, var(--bg-secondary), var(--border)); border: 1px solid var(--accent); }
+        .container { max-width: 700px; width: 100%; margin: 30px auto; padding: 0 16px; }
+        .page-title { font-size: 28px; margin-bottom: 24px; text-align: center; color: var(--accent); }
         
-        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); }
-        .footer a { color: var(--accent); text-decoration: none; }
-        .footer a:hover { text-decoration: underline; }
+        .info-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 12px var(--shadow); }
+        .info-card h2 { font-size: 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; color: var(--accent); }
+        .info-card p, .info-card li { font-size: 15px; line-height: 1.6; color: var(--text-primary); margin-bottom: 10px; }
+        .info-card ul { padding-left: 20px; }
+        .info-card li { margin-bottom: 8px; }
+        .highlight { color: var(--accent); font-weight: 600; }
+        
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
+        .team-member { background: var(--bg-primary); padding: 16px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+        .team-member .role { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
-        /* Виджеты */
-        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
-        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
-        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
-                /* === СТИЛИ ДЛЯ БУРГЕР-МЕНЮ И БЕЙДЖЕЙ === */
-        
-        /* Красный кружок счетчика */
-        .badge { 
-            background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; 
-            border-radius: 10px; margin-left: 4px; font-weight: bold; 
-            display: none; /* Скрыт по умолчанию */
-        }
-        .badge.show { display: inline-block; } /* Показываем, если есть цифра */
-
-        /* Кнопка Бургера (скрыта на ПК) */
-        .burger-btn { 
-            display: none; background: none; border: none; font-size: 24px; 
-            cursor: pointer; color: var(--text-primary); padding: 0 10px; 
-        }
-
-        /* АДАПТИВ ДЛЯ МОБИЛЬНЫХ (экраны меньше 768px) */
-        @media (max-width: 768px) {
-            .burger-btn { display: block; } /* Показываем бургер */
-            
-            .controls {
-                display: none; /* Скрываем меню по умолчанию */
-                position: absolute;
-                top: 100%; /* Сразу под шапкой */
-                left: 0; right: 0;
-                background: var(--bg-secondary);
-                flex-direction: column;
-                padding: 15px;
-                border-bottom: 1px solid var(--border);
-                box-shadow: 0 4px 12px var(--shadow);
-                z-index: 99;
-            }
-            
-            .controls.active { display: flex; } /* Показываем при клике на бургер */
-            
-            /* Растягиваем кнопки на всю ширину в мобильном меню */
-            .controls a, .controls button, .controls select { 
-                width: 100%; margin: 5px 0; text-align: center; 
-            }
-        }
     </style>
 </head>
 <body>
-           <header>
+    <header>
         <div class="logo" onclick="location.href='feed.html'">Smart Social</div>
-        
-        <!-- Кнопка Бургера (появится только на телефоне) -->
         <button class="burger-btn" id="burgerBtn">☰</button>
-
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇷🇺 RU</option>
-                <option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬🇧 EN</option>
-                <option value="es">🇪🇸 ES</option>
-                <option value="de">🇩🇪 DE</option>
+                <option value="ru">🇷🇺 RU</option><option value="uk">🇺 UA</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩 DE</option>
             </select>
-
-            <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
-                <span id="headerAvatar">👤</span>
-            </button>
-
+            <button class="profile-btn" onclick="location.href='profile.html'"><span id="headerAvatar"></span></button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            
-            <!-- Добавили span с id="chatBadge" -->
-            <a href="chat.html" class="btn-sm" data-i18n="nav_chat">
-                💬 Чат <span id="chatBadge" class="badge">0</span>
-            </a>
-            
-            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
+            <div class="nav-item">
+                <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
+                <span id="chatBadge" class="badge">0</span>
+            </div>
+            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья <span id="friendsBadge" class="badge">0</span></a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
-            
-            <!-- Добавили span с id="guestBadge" -->
-            <a href="guests.html" class="btn-sm" data-i18n="nav_guests">
-                👀 Гости <span id="guestBadge" class="badge">0</span>
-            </a>
-            
+            <div class="nav-item">
+                <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
+                <span id="guestBadge" class="badge">0</span>
+            </div>
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
+
     <div class="container">
-        <div class="hero">
-            <h1>О Smart Social</h1>
-            <p>Уютное пространство для общения, творчества и вдохновения. Здесь нет шума и алгоритмов, только ты и твои друзья.</p>
+        <h1 class="page-title">О проекте Smart Social</h1>
+
+        <div class="info-card">
+            <h2> Что такое Smart Social?</h2>
+            <p>Smart Social (или просто «Малышка») — это уютная, безопасная и эстетичная социальная сеть, созданная с душой. Здесь нет токсичности, бесконечных алгоритмических лент и рекламы. Только вы, ваши мысли и ваши друзья.</p>
+            <p>Мы верим, что интернет может быть добрым местом. </p>
         </div>
 
         <div class="info-card">
-            <h2>✨ Возможности</h2>
+            <h2> Правила сообщества</h2>
             <ul>
-                <li>📰 <b>Умная лента</b> с поддержкой видео, музыки и ссылок.</li>
-                <li>💬 <b>Личные сообщения</b> с историей и редактированием.</li>
-                <li>👥 <b>Система друзей</b> и заявок в друзья.</li>
-                <li>👀 <b>Гости</b> — узнавай, кто заходил к тебе в профиль.</li>
-                <li>🔍 <b>Поиск</b> людей по имени и статусу.</li>
-                <li>📱 <b>PWA</b> — устанавливай сайт как приложение на телефон или ПК.</li>
+                <li><span class="highlight">Уважение:</span> Общайтесь вежливо. Оскорбления, буллинг и разжигание ненависти строго запрещены.</li>
+                <li><span class="highlight">Лимит постов:</span> Максимум 10 публикаций в сутки. Мы за качество, а не за спам.</li>
+                <li><span class="highlight">Ночной режим:</span> Публикации доступны с 07:00 до 23:00. Давайте друг другу отдыхать!</li>
+                <li><span class="highlight">Безопасность:</span> Никогда не передавайте свой пароль третьим лицам. Используйте кнопку «Сменить пароль» в профиле.</li>
             </ul>
         </div>
 
         <div class="info-card">
-            <h2>🎨 Эстетика и Комфорт</h2>
-            <p>Мы создали интерфейс, который радует глаз. Мягкие фиолетовые градиенты, поддержка темной темы для комфортного чтения ночью и внимание к мельчайшим деталям.</p>
-            <p>Твой профиль — это твоя визитная карточка. Настраивай аватар, пиши статус и делись тем, что важно именно тебе.</p>
-        </div>
-
-        <div class="info-card angel-card">
-            <h2>👼 Ангел-Хранитель</h2>
-            <p>На каждой странице тебя сопровождает маленький Ангел-Хранитель. Он не просто украшение — он напоминает о том, что в сети, как и в жизни, важно оставаться человеком, быть вежливым и беречь тепло общения.</p>
-        </div>
-
-        <div class="footer">
-            <p>Создано с любовью и фиолетовым настроением 💜</p>
-            <p style="margin-top: 8px;">Особая страница: <a href="profile.html?user_id=35121042-3aef-4bb9-9c05-9247fbfbc68f">Профиль Адель</a> | <a href="https://angel-adel.github.io/angel/" target="_blank">Сайт поэзии</a></p>
-            <p style="margin-top: 8px;">&copy; 2026 Smart Social. Все права защищены.</p>
-        </div>
-    </div>
-
-    <!-- Виджеты (СТРОГО ПЕРЕД SCRIPT) -->
-    <div class="angel-widget">
-        <div class="angel-window" id="angelWindow">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <strong>Ангел-Хранитель</strong>
-                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
+            <h2> Команда проекта</h2>
+            <p>Проект создан и поддерживается небольшим, но очень упорным энтузиастом.</p>
+            <div class="team-grid">
+                <div class="team-member">
+                    <div style="font-size: 24px; margin-bottom: 8px;">👨‍💻</div>
+                    <strong>Toroptsev Dmitry</strong>
+                    <div class="role">Основатель и Главный Разработчик</div>
+                </div>
+                <div class="team-member">
+                    <div style="font-size: 24px; margin-bottom: 8px;">👼</div>
+                    <strong>Ангел-Хранитель</strong>
+                    <div class="role">Ваш виртуальный помощник и поддержка</div>
+                </div>
             </div>
-            <p style="font-size:14px; color:var(--text-secondary)">Добро пожаловать в Smart Social. Пусть твое время здесь будет приятным! 👼</p>
         </div>
-        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
+
+        <div class="info-card">
+            <h2> Технологии</h2>
+            <p>Проект работает на современных и надежных технологиях:</p>
+            <ul>
+                <li><strong>Supabase</strong> — мощная база данных и аутентификация.</li>
+                <li><strong>Vercel</strong> — быстрая и стабильная доставка контента по всему миру.</li>
+                <li><strong>Vanilla JS</strong> — чистый код без лишних тяжелых библиотек.</li>
+            </ul>
+            <p style="margin-top: 15px; font-style: italic; color: var(--text-secondary);">Если вы нашли баг или у вас есть идея для улучшения — напишите Администрации через чат или в разделе профиля. Мы всегда рады обратной связи!</p>
+        </div>
     </div>
 
-    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="theme-toggle" id="themeToggle"></button>
 
     <script>
-                // === ЛОГИКА БУРГЕР-МЕНЮ ===
-        const burgerBtn = document.getElementById('burgerBtn');
-        const navControls = document.getElementById('navControls');
-        
-        if (burgerBtn && navControls) {
-            // Открыть/закрыть меню
-            burgerBtn.onclick = () => navControls.classList.toggle('active');
-            
-            // Автоматически закрывать меню при клике на любую ссылку
-            navControls.querySelectorAll('a').forEach(link => {
-                link.onclick = () => navControls.classList.remove('active');
-            });
-        }
-
-        // === ЛОГИКА КРАСНЫХ СЧЕТЧИКОВ (БЕЙДЖЕЙ) ===
-        async function updateBadges() {
-            if (!currentUser) return;
-
-            // 1. Счетчик непрочитанных гостей
-            const { count: guestCount } = await supabaseClient
-                .from('profile_visits')
-                .select('*', { count: 'exact', head: true })
-                .eq('host_id', currentUser.id)
-                .eq('is_read', false);
-
-            const gBadge = document.getElementById('guestBadge');
-            if (gBadge) {
-                gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
-                if (guestCount > 0) gBadge.classList.add('show'); 
-                else gBadge.classList.remove('show');
-            }
-
-            // 2. Счетчик непрочитанных сообщений
-            const { count: msgCount } = await supabaseClient
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('receiver_id', currentUser.id)
-                .eq('is_read', false);
-
-            const cBadge = document.getElementById('chatBadge');
-            if (cBadge) {
-                cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
-                if (msgCount > 0) cBadge.classList.add('show'); 
-                else cBadge.classList.remove('show');
-            }
-        }
-        
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
 
-        // Тема
-        const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { 
-            document.documentElement.setAttribute('data-theme', 'dark'); 
-            themeToggle.textContent = '☀️'; 
+        // === БУРГЕР-МЕНЮ ===
+        const burgerBtn = document.getElementById('burgerBtn');
+        const navControls = document.getElementById('navControls');
+        if (burgerBtn && navControls) {
+            burgerBtn.onclick = () => navControls.classList.toggle('active');
+            navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
         }
+
+        // === СЧЕТЧИКИ (БЕЙДЖИ) ===
+        async function updateBadges() {
+            if (!currentUser) return;
+            const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
+            const gBadge = document.getElementById('guestBadge');
+            if (gBadge) { gBadge.textContent = guestCount > 99 ? '99+' : guestCount; guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show'); }
+            
+            const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
+            const cBadge = document.getElementById('chatBadge');
+            if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
+            
+            const { count: friendReqCount } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
+            const fBadge = document.getElementById('friendsBadge');
+            if (fBadge) { fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount; friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show'); }
+        }
+
+        // === ТЕМА ===
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            themeToggle.textContent = isDark ? '🌙' : '☀️';
+            themeToggle.textContent = isDark ? '' : '☀️';
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
-        // Проверка авторизации
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
+
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) window.location.href = 'index.html';
-        }
+            if (!session) return window.location.href = 'index.html';
+            currentUser = session.user;
+            
+            const { data: u } = await supabaseClient.from('users').select('avatar_url').eq('id', currentUser.id).single();
+            if (u && u.avatar_url) document.getElementById('headerAvatar').innerHTML = `<img src="${u.avatar_url}">`;
 
-        document.getElementById('logoutBtn').onclick = async () => { 
-            await supabaseClient.auth.signOut(); 
-            window.location.href = 'index.html'; 
-        };
+            updateBadges();
+        }
 
         init();
     </script>
