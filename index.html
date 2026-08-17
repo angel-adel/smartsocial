@@ -4,264 +4,391 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="./manifest.json">
+    <!-- Favicon для всех браузеров -->
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
-    <meta name="theme-color" content="#7c3aed">
-    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
+    
+    <!-- Для iPhone/iPad -->
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Smart Social">
-    <title>Smart Social — Добро пожаловать!</title>
     
+    <!-- Для Android / PWA -->
+    <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
+    
+    <!-- Цвет вкладки браузера (под твой фиолетовый стиль) -->
+    <meta name="theme-color" content="#7c3aed">
+    <title>Вход | Smart Social</title>
+    
+    <!-- 1. Конфиг (ключи) -->
     <script src="config.js"></script>
+    <!-- 2. Переводы -->
     <script src="i18n.js"></script>
+    <!-- 2.1. НОВЫЙ УМНЫЙ ВИДЖЕТ -->
     <script src="angel-widget.js"></script>
+    <!-- 3. Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <!-- 4. Логика авторизации -->
+    <script src="login.js"></script>
+
     <style>
         :root {
+            /* Светлая тема — мягкая фиолетовая градация */
             --bg-primary: linear-gradient(135deg, #f5f0ff 0%, #e9d9ff 100%);
             --bg-secondary: #ffffff;
             --text-primary: #1e1e2f;
             --text-secondary: #6b6b80;
             --accent: #7c3aed;
+            --accent-hover: #6d28d9;
             --border: #e9d9ff;
             --shadow: rgba(124, 58, 237, 0.1);
+            --console-bg: #faf5ff;
+            --console-border: #d8b4fe;
+            --console-text: #1e1e2f;
         }
         [data-theme="dark"] {
+            /* Темная тема — глубокий фиолетовый */
             --bg-primary: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
             --bg-secondary: #2a1a3e;
             --text-primary: #f5f0ff;
             --text-secondary: #c4b5fd;
             --accent: #a78bfa;
+            --accent-hover: #c4b5fd;
             --border: #4c1d95;
             --shadow: rgba(167, 139, 250, 0.2);
+            --console-bg: #1f1033;
+            --console-border: #6d28d9;
+            --console-text: #e9d9ff;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
-        body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); display: flex; align-items: center; justify-content: center; padding: 20px; }
 
-        .auth-container { background: var(--bg-secondary); border-radius: 24px; border: 1px solid var(--border); padding: 40px; max-width: 400px; width: 100%; box-shadow: 0 8px 32px var(--shadow); }
-        .logo { text-align: center; margin-bottom: 30px; }
-        .logo h1 { font-size: 32px; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
-        .logo p { color: var(--text-secondary); font-size: 14px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
 
-        .tabs { display: flex; gap: 10px; margin-bottom: 24px; }
-        .tab { flex: 1; padding: 12px; border: none; background: var(--bg-primary); color: var(--text-secondary); border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 14px; }
-        .tab.active { background: var(--accent); color: white; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-primary);
+        }
 
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px; outline: none; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
+        /* ===== ВЕРХНИЕ КОНТРОЛЫ (ТЕМА + ЯЗЫК) ===== */
+        .top-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
 
-        .btn-primary { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--accent); color: white; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 8px; }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        #langSelect {
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
 
-        .divider { text-align: center; margin: 20px 0; color: var(--text-secondary); font-size: 13px; position: relative; }
-        .divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border); z-index: 0; }
-        .divider span { position: relative; background: var(--bg-secondary); padding: 0 10px; z-index: 1; }
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+        }
 
-        .error-msg { background: #fef2f2; color: #ef4444; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; border: 1px solid #fecaca; }
-        .error-msg.show { display: block; }
+        .theme-toggle:hover, #langSelect:hover {
+            opacity: 0.9;
+        }
 
-        .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
+        /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
+        .auth-container {
+            max-width: 420px;
+            width: 100%;
+        }
 
+        .auth-box {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 40px 32px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px var(--shadow);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 14px;            line-height: 1.5;
+        }
+
+        /* ===== ФОРМА ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .gender-selection {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .gender-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .gender-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .gender-option label {
+            display: block;
+            padding: 12px;            border: 2px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .gender-option input:checked + label {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ===== КОНСОЛЬ ===== */
+        .console-container {
+            margin-top: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--console-border);
+        }
+
+        .console-header {
+            background: var(--console-bg);
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--console-border);
+        }
+        .console-output {
+            background: var(--console-bg);
+            padding: 12px 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--console-text);
+        }
+
+        /* ===== ФУТЕР ===== */
+        .footer-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+        }
+
+        .footer-link a, .about-link {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .about-link {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+        }
+
+        /* ===== АДАПТИВ ===== */
         @media (max-width: 480px) {
-            .auth-container { padding: 30px 20px; }
-            .logo h1 { font-size: 28px; }
+            .auth-box { padding: 32px 24px; }
+            .auth-header h1 { font-size: 24px; }
+            .gender-selection { flex-direction: column; }
+        }
+
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
 
-    <div class="auth-container">
-        <div class="logo">
-            <h1>Smart Social</h1>
-            <p>Социальная сеть с душой </p>
-        </div>
-
-        <div class="tabs">
-            <button class="tab active" id="loginTab" onclick="switchTab('login')">Вход</button>
-            <button class="tab" id="registerTab" onclick="switchTab('register')">Регистрация</button>
-        </div>
-
-        <div class="error-msg" id="errorMsg"></div>
-
-        <!-- Форма входа -->
-        <form id="loginForm" onsubmit="handleLogin(event)">
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="loginEmail" required placeholder="your@email.com">
-            </div>
-            <div class="form-group">
-                <label>Пароль</label>
-                <input type="password" id="loginPassword" required placeholder="••••••••">
-            </div>
-            <button type="submit" class="btn-primary" id="loginBtn">Войти</button>
-        </form>
-
-        <!-- Форма регистрации -->
-        <form id="registerForm" onsubmit="handleRegister(event)" style="display: none;">
-            <div class="form-group">
-                <label>Имя пользователя</label>
-                <input type="text" id="regUsername" required placeholder="Как к тебе обращаться?" minlength="3">
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="regEmail" required placeholder="your@email.com">
-            </div>
-            <div class="form-group">
-                <label>Пароль</label>
-                <input type="password" id="regPassword" required placeholder="Минимум 6 символов" minlength="6">
-            </div>
-            <div class="form-group">
-                <label>Пол</label>
-                <select id="regGender">
-                    <option value="male">Мужской</option>
-                    <option value="female">Женский</option>
-                    <option value="other">Не указан</option>
-                </select>
-            </div>
-            <button type="submit" class="btn-primary" id="registerBtn">Создать аккаунт</button>
-        </form>
-
-        <div class="divider"><span>или</span></div>
-        
-        <button class="btn-primary" style="background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border);" onclick="location.href='feed.html'">
-             Продолжить как гость
-        </button>
+    <!-- Верхние контролы -->
+    <div class="top-controls">
+        <select id="langSelect">
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="uk">🇺🇦 Українська</option>
+            <option value="en">🇬🇧 English</option>            <option value="es">🇪🇸 Español</option>
+            <option value="de">🇩🇪 Deutsch</option>
+        </select>
+        <button class="theme-toggle" id="themeToggle" title="Переключить тему">🌙</button>
     </div>
 
-    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <!-- Основная форма -->
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>🔐 Smart Social</h1>
+                <p>Войдите или создайте аккаунт. Если email не зарегистрирован, он создастся автоматически.</p>
+            </div>
 
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="username">Имя пользователя</label>
+                    <input type="text" id="username" placeholder="Введите имя" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" placeholder="Минимум 4 символа" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="gender-label">Пол</label>
+                    <div class="gender-selection">
+                        <div class="gender-option">
+                            <input type="radio" id="male" name="gender" value="male" checked />
+                            <label for="male">Мужской</label>
+                        </div>
+                        <div class="gender-option">
+                            <input type="radio" id="female" name="gender" value="female" />
+                            <label for="female">Женский</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">Войти / Зарегистрироваться</button>
+            </form>
+
+            <div class="console-container hidden" id="console">
+                <div class="console-header">💻 Системный журнал</div>
+                <div class="console-output" id="console-output"></div>
+            </div>
+
+            <div class="footer-link">
+                <a href="mailto:smartsocials@mail.ru?subject=Помощь по сайту&body=Возникли проблемы с сайтом..." class="footer-link">
+                    📧 Забыли пароль?                </a>
+            </div>
+            <a href="about.html" class="about-link">← О сайте</a>
+        </div>
+    </div>
+
+    <!-- Инициализация темы и языка -->
     <script>
-        if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); }
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // === ТЕМА ===
+        // ===== ТЕМА =====
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
-        themeToggle.onclick = () => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
+        }
+
+        themeToggle.addEventListener('click', () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            themeToggle.textContent = isDark ? '🌙' : '☀️';
-            localStorage.setItem('theme', isDark ? 'light' : 'dark');
-        };
-
-        // === ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ===
-        function switchTab(tab) {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const loginTab = document.getElementById('loginTab');
-            const registerTab = document.getElementById('registerTab');
-            const errorMsg = document.getElementById('errorMsg');
-            
-            errorMsg.classList.remove('show');
-            
-            if (tab === 'login') {
-                loginForm.style.display = 'block';
-                registerForm.style.display = 'none';
-                loginTab.classList.add('active');
-                registerTab.classList.remove('active');
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
             } else {
-                loginForm.style.display = 'none';
-                registerForm.style.display = 'block';
-                loginTab.classList.remove('active');
-                registerTab.classList.add('active');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
             }
-        }
+        });
 
-        // === ВХОД ===
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
-            const errorMsg = document.getElementById('errorMsg');
-            
-            btn.disabled = true;
-            btn.textContent = 'Вход...';
-            errorMsg.classList.remove('show');
-            
-            try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-                
-                if (error) throw error;
-                
-                // Проверяем, есть ли профиль пользователя
-                const { data: profile } = await supabaseClient.from('users').select('id').eq('id', data.user.id).single();
-                
-                if (!profile) {
-                    // Если профиля нет, создаем его
-                    await supabaseClient.from('users').insert([{
-                        id: data.user.id,
-                        username: email.split('@')[0],
-                        email: email,
-                        gender: 'other'
-                    }]);
+        // ===== ЯЗЫК =====
+        const savedLang = localStorage.getItem('lang') || 'ru';
+        const langSelect = document.getElementById('langSelect');
+        
+        if (langSelect) {
+            langSelect.value = savedLang;
+            langSelect.addEventListener('change', (e) => {
+                localStorage.setItem('lang', e.target.value);
+                if (typeof applyLanguage === 'function') {
+                    applyLanguage(e.target.value);
                 }
-                
-                window.location.href = 'feed.html';
-                
-            } catch (err) {
-                errorMsg.textContent = err.message || 'Ошибка входа';
-                errorMsg.classList.add('show');
-                btn.disabled = false;
-                btn.textContent = 'Войти';
-            }
+            });
         }
 
-        // === РЕГИСТРАЦИЯ ===
-        async function handleRegister(e) {
-            e.preventDefault();
-            const username = document.getElementById('regUsername').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-            const password = document.getElementById('regPassword').value;
-            const gender = document.getElementById('regGender').value;
-            const btn = document.getElementById('registerBtn');
-            const errorMsg = document.getElementById('errorMsg');
-            
-            btn.disabled = true;
-            btn.textContent = 'Создание...';
-            errorMsg.classList.remove('show');
-            
-            try {
-                // Сначала создаем пользователя в Auth
-                const { data, error: authError } = await supabaseClient.auth.signUp({ email, password });
-                
-                if (authError) throw authError;
-                
-                // Создаем профиль в таблице users
-                const { error: profileError } = await supabaseClient.from('users').insert([{
-                    id: data.user.id,
-                    username: username,
-                    email: email,
-                    gender: gender,
-                    bio: 'Пока без статуса. Но это можно исправить! ✨'
-                }]);
-                
-                if (profileError) throw profileError;
-                
-                // Автоматически входим
-                await supabaseClient.auth.signInWithPassword({ email, password });
-                window.location.href = 'feed.html';
-                
-            } catch (err) {
-                errorMsg.textContent = err.message || 'Ошибка регистрации';
-                errorMsg.classList.add('show');
-                btn.disabled = false;
-                btn.textContent = 'Создать аккаунт';
-            }
+        // Применяем язык при загрузке
+        if (typeof applyLanguage === 'function') {
+            applyLanguage(savedLang);
         }
-
-        // === ПРОВЕРКА АВТОРИЗАЦИИ ===
-        async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                window.location.href = 'feed.html';
-            }
-        }
-
-        checkAuth();
     </script>
 </body>
 </html>
