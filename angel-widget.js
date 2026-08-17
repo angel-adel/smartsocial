@@ -54,9 +54,10 @@ const knowledgeBase = [
     answer: '📝 Регистрация происходит через email и пароль. Если забыл пароль — используй функцию восстановления, написав администраторам на <a href="mailto:smartsocials@mail.ru?subject=Восстановление пароля Smart Social&body=Здравствуйте!%0A%0AЯ забыл пароль от своего аккаунта.%0AМой email, указанный при регистрации: [укажите ваш email]%0AМое имя пользователя: [укажите имя]%0A%0AПомогите, пожалуйста, восстановить доступ.%0A%0AС уважением." style="color: var(--accent); text-decoration: underline; font-weight: 600;">почту smartsocials@mail.ru</a>. Тема письма и вопрос будут заполнены автоматически. Используй любой адрес для восстановления, ведь имя то одно, а пароль будет другим🥰.'
     },
    {
-    keywords: ['новости', 'обновления', 'канал', 'где следить'],
-    answer: '🌐 С удовольствием следите за нами <a href="https://max.ru/channel_SmartSocial_news" target="_blank" style="color: var(--accent); text-decoration: underline;">в канале MAX</a>'
-   }
+        keywords: ['новости', 'обновления', 'канал', 'где следить', 'max'],
+        answer: '🌐 С удовольствием следите за нами <a href="https://max.ru/channel_SmartSocial_news"
+ target="_blank" style="color: var(--accent); text-decoration: underline;">в канале MAX</a>'
+    },
 ]
  
 function initAngelWidget() {
