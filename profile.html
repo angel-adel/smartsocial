@@ -453,43 +453,39 @@
         }
 
         // ===== СМЕНА АВАТАРА =====
-        // ===== СМЕНА АВАТАРА =====
         document.getElementById('avatarInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
-            alert('1️⃣ Файл выбран: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)');
             
             const formData = new FormData();
             formData.append('image', file);
             
             try {
-                alert('2️⃣ Отправляем на imgbb...');
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { 
                     method: 'POST', 
                     body: formData 
                 });
                 
-                alert('3️⃣ Ответ получен, статус: ' + res.status);
-                
                 const data = await res.json();
                 
                 if (data.success) {
-                    alert('4️⃣ URL получен: ' + data.data.url);
+                    // Добавляем timestamp для сброса кэша
+                    const newUrl = data.data.url + '?t=' + Date.now();
                     
-                    const { error } = await supabaseClient.from('users').update({ avatar_url: data.data.url }).eq('id', currentUser.id);
+                    const { error } = await supabaseClient.from('users').update({ avatar_url: newUrl }).eq('id', currentUser.id);
                     
                     if (!error) {
-                        alert('✅ Аватар обновлён!');
+                        // Ждём 500мс, чтобы Supabase успел обновить данные
+                        await new Promise(resolve => setTimeout(resolve, 500));
                         init();
                     } else {
-                        alert('❌ Ошибка Supabase: ' + error.message);
+                        alert('Ошибка Supabase: ' + error.message);
                     }
                 } else {
-                    alert('❌ Ошибка imgbb: ' + (data.error?.message || 'Неизвестная ошибка'));
+                    alert('Ошибка imgbb: ' + (data.error?.message || 'Неизвестная ошибка'));
                 }
             } catch (err) { 
-                alert('❌ Критическая ошибка: ' + err.message);
+                alert('Не удалось загрузить аватар: ' + err.message);
             }
         });
 
