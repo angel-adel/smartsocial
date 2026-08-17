@@ -182,6 +182,7 @@
             <div class="profile-meta" id="profileMeta"></div>
             <p class="profile-bio" id="profileBio"></p>
             <button class="btn-sm" id="editBtn">✏️ Редактировать профиль</button>
+            <button class="btn-sm" id="changePasswordBtn" style="margin-left: 10px;">🔑 Сменить пароль</button>
         </div>
 
         <!-- Форма редактирования -->
@@ -520,6 +521,50 @@
             window.location.href = 'index.html'; 
         };
 
+        // === СМЕНА ПАРОЛЯ ===
+        document.getElementById('changePasswordBtn').onclick = async () => {
+            // Показываем эту кнопку только в СВОЕМ профиле
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUserId = urlParams.get('user_id') || currentUser.id;
+            if (targetUserId !== currentUser.id) {
+                alert('Сменить пароль можно только в своем профиле!');
+                return;
+            }
+
+            const oldPass = prompt('Введите текущий пароль:');
+            if (!oldPass) return;
+            
+            const newPass = prompt('Введите новый пароль (минимум 6 символов):');
+            if (!newPass || newPass.length < 6) {
+                alert('Пароль должен быть не короче 6 символов');
+                return;
+            }
+            
+            const confirmPass = prompt('Повторите новый пароль:');
+            if (newPass !== confirmPass) {
+                alert('Пароли не совпадают!');
+                return;
+            }
+
+            // Сначала перелогиниваемся со старым паролем (требование Supabase)
+            const { error: loginError } = await supabaseClient.auth.signInWithPassword({
+                email: currentUser.email,
+                password: oldPass
+            });
+            
+            if (loginError) {
+                alert('Неверный текущий пароль!');
+                return;
+            }
+
+            // Меняем пароль
+            const { error } = await supabaseClient.auth.updateUser({ password: newPass });
+            if (!error) {
+                alert('✅ Пароль успешно изменен!');
+            } else {
+                alert('Ошибка: ' + error.message);
+            }
+        };
         init();
     </script>
 </body>
