@@ -453,39 +453,51 @@
         }
 
         // ===== СМЕНА АВАТАРА =====
+        // ===== СМЕНА АВАТАРА =====
         document.getElementById('avatarInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             
-            const formData = new FormData();
-            formData.append('image', file);
+            // Проверяем размер (макс 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Файл слишком большой. Максимум 5MB.');
+                return;
+            }
             
             try {
-                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { 
-                    method: 'POST', 
-                    body: formData 
-                });
+                // Генерируем уникальное имя файла
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}.${fileExt}`;
                 
-                const data = await res.json();
+                // Загружаем в Supabase Storage
+                const { data, error } = await supabaseClient.storage
+                    .from('avatars')
+                    .upload(fileName, file, { upsert: true });
                 
-                if (data.success) {
-                    // Добавляем timestamp для сброса кэша
-                    const newUrl = data.data.url + '?t=' + Date.now();
-                    
-                    const { error } = await supabaseClient.from('users').update({ avatar_url: newUrl }).eq('id', currentUser.id);
-                    
-                    if (!error) {
-                        // Ждём 500мс, чтобы Supabase успел обновить данные
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        init();
-                    } else {
-                        alert('Ошибка Supabase: ' + error.message);
-                    }
-                } else {
-                    alert('Ошибка imgbb: ' + (data.error?.message || 'Неизвестная ошибка'));
-                }
-            } catch (err) { 
-                alert('Не удалось загрузить аватар: ' + err.message);
+                if (error) throw error;
+                
+                // Получаем публичную ссылку
+                const { data: { publicUrl } } = supabaseClient.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName);
+                
+                // Добавляем timestamp для сброса кэша
+                const avatarUrl = publicUrl + '?t=' + Date.now();
+                
+                // Обновляем запись в таблице users
+                const { error: dbError } = await supabaseClient
+                    .from('users')
+                    .update({ avatar_url: avatarUrl })
+                    .eq('id', currentUser.id);
+                
+                if (dbError) throw dbError;
+                
+                // Перезагружаем профиль
+                await new Promise(resolve => setTimeout(resolve, 500));
+                init();
+                
+            } catch (err) {
+                alert('Ошибка загрузки аватара: ' + err.message);
             }
         });
 
