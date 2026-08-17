@@ -91,7 +91,7 @@
         <div class="controls" id="navControls">
             <select id="langSelect">
                 <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬🇧 EN</option><option value="es">🇪 ES</option><option value="de">🇪 DE</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩🇪 DE</option>
             </select>
             <button class="profile-btn" onclick="location.href='profile.html'"><span id="headerAvatar"></span></button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed">📰 Лента</a>
@@ -100,7 +100,7 @@
                 <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
                 <span id="chatBadge" class="badge">0</span>
             </div>
-            <a href="friends.html" class="btn-sm" data-i18n="nav_friends"> Друзья <span id="friendsBadge" class="badge">0</span></a>
+            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья <span id="friendsBadge" class="badge">0</span></a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
             <div class="nav-item">
                 <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
@@ -152,26 +152,35 @@
         // === СЧЕТЧИКИ (БЕЙДЖИ) ===
         async function updateBadges() {
             if (!currentUser) return;
-            const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
-            const gBadge = document.getElementById('guestBadge');
-            if (gBadge) { gBadge.textContent = guestCount > 99 ? '99+' : guestCount; guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show'); }
+            const { count: guestCount, error: gErr } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
+            if (!gErr && document.getElementById('guestBadge')) {
+                const gBadge = document.getElementById('guestBadge');
+                gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
+                guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show');
+            }
             
-            const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
-            const cBadge = document.getElementById('chatBadge');
-            if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
+            const { count: msgCount, error: mErr } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
+            if (!mErr && document.getElementById('chatBadge')) {
+                const cBadge = document.getElementById('chatBadge');
+                cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
+                msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show');
+            }
             
-            const { count: friendReqCount } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
-            const fBadge = document.getElementById('friendsBadge');
-            if (fBadge) { fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount; friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show'); }
+            const { count: friendReqCount, error: fErr } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
+            if (!fErr && document.getElementById('friendsBadge')) {
+                const fBadge = document.getElementById('friendsBadge');
+                fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount;
+                friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show');
+            }
         }
 
         // === ТЕМА ===
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '️'; }
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            themeToggle.textContent = isDark ? '' : '☀️';
+            themeToggle.textContent = isDark ? '🌙' : '☀️';
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
@@ -192,43 +201,61 @@
             const list = document.getElementById('friendsList');
             const countSpan = document.getElementById('friendsCount');
             
-            const { data: friendships } = await supabaseClient
-                .from('friendships')
-                .select('id, requester_id, addressee_id')
-                .eq('status', 'accepted')
-                .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+            try {
+                const { data: friendships, error: friendError } = await supabaseClient
+                    .from('friendships')
+                    .select('id, requester_id, addressee_id')
+                    .eq('status', 'accepted')
+                    .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
 
-            if (!friendships || friendships.length === 0) {
-                list.innerHTML = '<div class="empty-state" data-i18n="friends_empty">У тебя пока нет друзей. Найди их через поиск! 🔍</div>';
-                countSpan.textContent = '(0)';
-                return;
+                if (friendError) {
+                    alert('Ошибка базы данных (друзья): ' + friendError.message);
+                    return;
+                }
+
+                if (!friendships || friendships.length === 0) {
+                    list.innerHTML = '<div class="empty-state" data-i18n="friends_empty">У тебя пока нет друзей. Найди их через поиск! 🔍</div>';
+                    countSpan.textContent = '(0)';
+                    return;
+                }
+
+                countSpan.textContent = `(${friendships.length})`;
+                const partnerIds = friendships.map(f => f.requester_id === currentUser.id ? f.addressee_id : f.requester_id);
+                
+                const { data: users, error: userError } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', partnerIds);
+                
+                if (userError) {
+                    alert('Ошибка базы данных (профили): ' + userError.message);
+                    return;
+                }
+
+                // ЗАЩИТА: если users почему-то null, делаем пустым массивом, чтобы код не упал
+                const safeUsers = users || [];
+
+                list.innerHTML = safeUsers.map(u => {
+                    const friendship = friendships.find(f => f.requester_id === u.id || f.addressee_id === u.id);
+                    const friendshipId = friendship ? friendship.id : '';
+                    const safeName = (u.username || 'пользователя').replace(/'/g, "\\'");
+
+                    return `
+                    <div class="user-card">
+                        <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
+                            ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
+                        </div>
+                        <div class="user-info" onclick="location.href='profile.html?user_id=${u.id}'">
+                            <div class="user-name">${u.username || 'Аноним'}</div>
+                            <div class="user-bio">${u.bio || 'Без статуса'}</div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn-sm btn-danger" onclick="removeFriend('${friendshipId}', '${safeName}')">${t('btn_delete') || 'Удалить'}</button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                alert('Критическая ошибка в loadFriends: ' + err.message);
             }
-
-            countSpan.textContent = `(${friendships.length})`;
-            const partnerIds = friendships.map(f => f.requester_id === currentUser.id ? f.addressee_id : f.requester_id);
-            
-            const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', partnerIds);
-            
-            list.innerHTML = users.map(u => {
-                const friendship = friendships.find(f => f.requester_id === u.id || f.addressee_id === u.id);
-                const friendshipId = friendship ? friendship.id : '';
-                const safeName = (u.username || 'пользователя').replace(/'/g, "\\'");
-
-                return `
-                <div class="user-card">
-                    <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
-                        ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
-                    </div>
-                    <div class="user-info" onclick="location.href='profile.html?user_id=${u.id}'">
-                        <div class="user-name">${u.username || 'Аноним'}</div>
-                        <div class="user-bio">${u.bio || 'Без статуса'}</div>
-                    </div>
-                    <div class="user-actions">
-                        <button class="btn-sm btn-danger" onclick="removeFriend('${friendshipId}', '${safeName}')">${t('btn_delete') || 'Удалить'}</button>
-                    </div>
-                </div>
-                `;
-            }).join('');
         }
 
         // Загрузка Заявок (status = 'pending', где мы addressee)
@@ -236,43 +263,60 @@
             const list = document.getElementById('requestsList');
             const countSpan = document.getElementById('requestsCount');
 
-            const { data: requests } = await supabaseClient
-                .from('friendships')
-                .select('id, requester_id')
-                .eq('status', 'pending')
-                .eq('addressee_id', currentUser.id);
+            try {
+                const { data: requests, error: reqError } = await supabaseClient
+                    .from('friendships')
+                    .select('id, requester_id')
+                    .eq('status', 'pending')
+                    .eq('addressee_id', currentUser.id);
 
-            if (!requests || requests.length === 0) {
-                list.innerHTML = '<div class="empty-state" data-i18n="req_empty">Нет новых заявок 🌙</div>';
-                countSpan.textContent = '(0)';
-                return;
+                if (reqError) {
+                    alert('Ошибка базы данных (заявки): ' + reqError.message);
+                    return;
+                }
+
+                if (!requests || requests.length === 0) {
+                    list.innerHTML = '<div class="empty-state" data-i18n="req_empty">Нет новых заявок 🌙</div>';
+                    countSpan.textContent = '(0)';
+                    return;
+                }
+
+                countSpan.textContent = `(${requests.length})`;
+                const requesterIds = requests.map(r => r.requester_id);
+                const { data: users, error: userError } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', requesterIds);
+
+                if (userError) {
+                    alert('Ошибка базы данных (профили заявок): ' + userError.message);
+                    return;
+                }
+
+                const safeUsers = users || [];
+
+                list.innerHTML = safeUsers.map(u => {
+                    const req = requests.find(r => r.requester_id === u.id);
+                    const requestId = req ? req.id : '';
+                    const safeName = (u.username || 'пользователя').replace(/'/g, "\\'");
+
+                    return `
+                    <div class="user-card">
+                        <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
+                            ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
+                        </div>
+                        <div class="user-info" onclick="location.href='profile.html?user_id=${u.id}'">
+                            <div class="user-name">${u.username || 'Аноним'}</div>
+                            <div class="user-bio">${u.bio || 'Без статуса'}</div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn-sm btn-success" onclick="handleRequest('${requestId}', 'accepted')">${t('btn_accept') || 'Принять'}</button>
+                            <button class="btn-sm btn-danger" onclick="handleRequest('${requestId}', 'rejected')">${t('btn_reject') || 'Отклонить'}</button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                alert('Критическая ошибка в loadRequests: ' + err.message);
             }
-
-            countSpan.textContent = `(${requests.length})`;
-            const requesterIds = requests.map(r => r.requester_id);
-            const { data: users } = await supabaseClient.from('users').select('id, username, bio, avatar_url').in('id', requesterIds);
-
-            list.innerHTML = users.map(u => {
-                const req = requests.find(r => r.requester_id === u.id);
-                const requestId = req ? req.id : '';
-                const safeName = (u.username || 'пользователя').replace(/'/g, "\\'");
-
-                return `
-                <div class="user-card">
-                    <div class="user-avatar" onclick="location.href='profile.html?user_id=${u.id}'">
-                        ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
-                    </div>
-                    <div class="user-info" onclick="location.href='profile.html?user_id=${u.id}'">
-                        <div class="user-name">${u.username || 'Аноним'}</div>
-                        <div class="user-bio">${u.bio || 'Без статуса'}</div>
-                    </div>
-                    <div class="user-actions">
-                        <button class="btn-sm btn-success" onclick="handleRequest('${requestId}', 'accepted')">${t('btn_accept') || 'Принять'}</button>
-                        <button class="btn-sm btn-danger" onclick="handleRequest('${requestId}', 'rejected')">${t('btn_reject') || 'Отклонить'}</button>
-                    </div>
-                </div>
-                `;
-            }).join('');
         }
 
         // Удаление из друзей
@@ -281,7 +325,7 @@
             if (confirm((t('delete_confirm') || 'Удалить ') + name + (t('friends_delete_confirm') || ' из друзей?'))) {
                 const { error } = await supabaseClient.from('friendships').delete().eq('id', friendshipId);
                 if (!error) { loadFriends(); updateBadges(); } 
-                else alert('Ошибка: ' + error.message);
+                else alert('Ошибка удаления: ' + error.message);
             }
         }
 
@@ -292,7 +336,7 @@
             if (confirm(action + '?')) {
                 const { error } = await supabaseClient.from('friendships').update({ status: newStatus }).eq('id', requestId);
                 if (!error) { loadFriends(); loadRequests(); updateBadges(); } 
-                else alert('Ошибка: ' + error.message);
+                else alert('Ошибка обновления: ' + error.message);
             }
         }
 
