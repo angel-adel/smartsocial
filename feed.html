@@ -13,6 +13,7 @@
     
     <script src="config.js"></script>
     <script src="i18n.js"></script>
+    <script src="angel-widget.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -38,18 +39,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
         body { font-family: system-ui, sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); padding-bottom: 80px; }
 
-                header { 
-            background: var(--bg-secondary); 
-            padding: 12px 20px; 
-            border-bottom: 1px solid var(--border); 
-            position: sticky; 
-            top: 0; 
-            z-index: 100; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            box-shadow: 0 2px 10px var(--shadow); 
-        }
+        header { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); }
         .logo { font-weight: 700; font-size: 20px; color: var(--accent); cursor: pointer; }
         .controls { display: flex; gap: 10px; align-items: center; }
         select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
@@ -59,7 +49,6 @@
         .profile-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); background: var(--border); cursor: pointer; overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
         .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* === БУРГЕР И БЕЙДЖИ === */
         .nav-item { position: relative; display: inline-flex; align-items: center; }
         .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
         .badge.show { display: inline-block; }
@@ -67,29 +56,11 @@
 
         @media (max-width: 900px) {
             .burger-btn { display: block; }
-            .controls {
-                display: none; 
-                position: absolute; 
-                top: 100%; 
-                left: 0; 
-                right: 0;
-                background: var(--bg-secondary); 
-                flex-direction: column; 
-                padding: 15px;
-                border-bottom: 1px solid var(--border); 
-                box-shadow: 0 4px 12px var(--shadow); 
-                z-index: 101; /* Чуть выше чем у header, чтобы меню перекрывало контент */
-                max-height: 80vh;
-                overflow-y: auto;
-            }
+            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 101; max-height: 80vh; overflow-y: auto; }
             .controls.active { display: flex; }
-            .controls a, .controls button, .controls select, .controls .nav-item { 
-                width: 100%; 
-                margin: 5px 0; 
-                text-align: center; 
-                justify-content: center; 
-            }
+            .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
         }
+
         .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
         .create-post { background: var(--bg-secondary); padding: 20px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 4px 12px var(--shadow); }
         textarea { width: 100%; border: none; resize: none; background: transparent; color: var(--text-primary); font-size: 16px; min-height: 80px; outline: none; margin-bottom: 12px; font-family: inherit; }
@@ -125,9 +96,6 @@
         .edit-del { margin-left: auto; display: flex; gap: 10px; }
         .icon-btn { background: none; border: none; cursor: pointer; font-size: 18px; opacity: 0.6; }
 
-        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
-        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
-        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
     </style>
 </head>
@@ -146,22 +114,16 @@
             </button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed"> Лента</a>
             <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
-            
             <div class="nav-item">
                 <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
                 <span id="chatBadge" class="badge">0</span>
             </div>
-            
-                        <a href="friends.html" class="btn-sm" data-i18n="nav_friends">
-                👥 Друзья <span id="friendsBadge" class="badge">0</span>
-            </a>
+            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья</a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
-            
             <div class="nav-item">
                 <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
                 <span id="guestBadge" class="badge">0</span>
             </div>
-            
             <button class="btn-sm" id="logoutBtn" data-i18n="nav_logout">Выйти</button>
         </div>
     </header>
@@ -185,16 +147,6 @@
         <div id="feedList"></div>
     </div>
 
-    <div class="angel-widget">
-        <div class="angel-window" id="angelWindow">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <strong>Ангел-Хранитель</strong>
-                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'">✕</span>
-            </div>
-            <p style="font-size:14px; color:var(--text-secondary)">Привет! Помни про лимит 10 постов. Качество важнее количества! 👋</p>
-        </div>
-        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
-    </div>
     <button class="theme-toggle" id="themeToggle">🌙</button>
 
     <script>
@@ -211,38 +163,21 @@
             navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
         }
 
-                // === СЧЕТЧИКИ (БЕЙДЖИ) ===
+        // === СЧЕТЧИКИ (БЕЙДЖИ) ===
         async function updateBadges() {
             if (!currentUser) return;
-            
-            // 1. Гости
             const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
             const gBadge = document.getElementById('guestBadge');
-            if (gBadge) {
-                gBadge.textContent = guestCount > 99 ? '99+' : guestCount;
-                guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show');
-            }
+            if (gBadge) { gBadge.textContent = guestCount > 99 ? '99+' : guestCount; guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show'); }
 
-            // 2. Чат
             const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
             const cBadge = document.getElementById('chatBadge');
-            if (cBadge) {
-                cBadge.textContent = msgCount > 99 ? '99+' : msgCount;
-                msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show');
-            }
-            
-            // 3. Друзья (входящие заявки)
-            const { count: friendReqCount } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
-            const fBadge = document.getElementById('friendsBadge');
-            if (fBadge) {
-                fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount;
-                friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show');
-            }
+            if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
         }
 
         // === ТЕМА ===
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '️'; }
+        if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
@@ -368,7 +303,7 @@
                     ${readMoreBtn}${mediaHtml}
                     <div class="post-footer">
                         <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}', this)">
-                            ${isLiked ? '❤️' : ''} <span>${postLikes.length}</span>
+                            ${isLiked ? '❤️' : '🤍'} <span>${postLikes.length}</span>
                         </button>
                         ${isOwner ? `<div class="edit-del">
                             <button class="icon-btn" onclick="editPost('${post.id}', \`${post.content.replace(/`/g, '\\`')}\`)">✏️</button>
