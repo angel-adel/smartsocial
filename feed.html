@@ -106,14 +106,14 @@
         <button class="burger-btn" id="burgerBtn">☰</button>
         <div class="controls" id="navControls">
             <select id="langSelect">
-                <option value="ru">🇺 RU</option><option value="uk">🇺🇦 UA</option>
-                <option value="en">🇬 EN</option><option value="es">🇸 ES</option><option value="de">🇩🇪 DE</option>
+                <option value="ru">🇷🇺 RU</option><option value="uk">🇺🇦 UA</option>
+                <option value="en">🇬🇧 EN</option><option value="es">🇪🇸 ES</option><option value="de">🇩 DE</option>
             </select>
             <button class="profile-btn" onclick="location.href='profile.html'" title="Мой профиль">
                 <span id="headerAvatar">👤</span>
             </button>
             <a href="feed.html" class="btn-sm" data-i18n="nav_feed"> Лента</a>
-            <a href="search.html" class="btn-sm" data-i18n="nav_search">🔍 Поиск</a>
+            <a href="search.html" class="btn-sm" data-i18n="nav_search"> Поиск</a>
             <div class="nav-item">
                 <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
                 <span id="chatBadge" class="badge">0</span>
@@ -152,7 +152,7 @@
     <script>
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const IMGBB_KEY = '15cba85a1a5259f80f5326d1fb9bd1f1'; 
+        const IMGBB_KEY = ''; // УСТАРЕЛО - теперь используем Supabase Storage
         let currentUser = null;
 
         // === БУРГЕР-МЕНЮ ===
@@ -205,7 +205,7 @@
             const info = document.getElementById('limitInfo');
             if (hour >= 23 || hour < 7) {
                 btn.disabled = true; btn.style.opacity = '0.5';
-                btn.textContent = t('feed_night_mode') || 'Ночной режим 🌙';
+                btn.textContent = t('feed_night_mode') || 'Ночной режим ';
                 if (info) info.textContent = t('feed_publish_available') || 'Публикация доступна с 07:00 до 23:00';
             }
         }
@@ -219,7 +219,7 @@
                 info.textContent = t('feed_limit_exhausted') || 'Лимит исчерпан на сегодня ✨';
                 info.style.color = 'var(--like-color)'; btn.disabled = true; btn.style.opacity = '0.5';
             } else {
-                if (btn.textContent !== (t('feed_night_mode') || 'Ночной режим 🌙')) {
+                if (btn.textContent !== (t('feed_night_mode') || 'Ночной режим ')) {
                     info.textContent = (t('feed_posts_left') || 'Осталось постов сегодня: ') + (10 - count);
                 }
             }
@@ -227,10 +227,40 @@
 
         document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
 
+        // === ЗАГРУЗКА ИЗОБРАЖЕНИЯ ЧЕРЕЗ SUPABASE STORAGE ===
         async function uploadImage(file) {
-            const formData = new FormData(); formData.append("image", file);
-            try { const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: "POST", body: formData }); const data = await res.json(); return data.success ? data.data.url : null; } 
-            catch (e) { return null; }
+            if (!file) return null;
+            if (file.size > 5 * 1024 * 1024) { 
+                alert('Файл слишком большой. Максимум 5MB.'); 
+                return null; 
+            }
+            
+            try {
+                // Создаем уникальное имя файла
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}_${Date.now()}.${fileExt}`;
+                
+                // Загружаем в bucket 'posts'
+                const { data, error } = await supabaseClient.storage
+                    .from('posts')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                
+                if (error) throw error;
+                
+                // Получаем публичную ссылку
+                const { data: { publicUrl } } = supabaseClient.storage
+                    .from('posts')
+                    .getPublicUrl(fileName);
+                
+                return publicUrl;
+            } catch (err) {
+                console.error('Ошибка загрузки:', err);
+                alert('Ошибка загрузки изображения: ' + err.message);
+                return null;
+            }
         }
 
         document.getElementById('publishBtn').onclick = async () => {
@@ -241,21 +271,39 @@
             const file = document.getElementById('imageInput').files[0];
             if (!content && !link && !file) return;
 
-            const btn = document.getElementById('publishBtn'); btn.disabled = true; btn.textContent = '...';
+            const btn = document.getElementById('publishBtn'); 
+            btn.disabled = true; 
+            btn.textContent = '...';
+            
             const imgUrl = file ? await uploadImage(file) : null;
 
-            const { error } = await supabaseClient.from('posts').insert([{ user_id: currentUser.id, content, media_url: link, image_url: imgUrl }]);
+            const { error } = await supabaseClient.from('posts').insert([{ 
+                user_id: currentUser.id, 
+                content, 
+                media_url: link, 
+                image_url: imgUrl 
+            }]);
+            
             if (!error) {
-                document.getElementById('postContent').value = ''; document.getElementById('postLink').value = '';
-                document.getElementById('imageInput').value = ''; document.getElementById('fileName').textContent = '';
-                checkDailyLimit(); loadPosts();
+                document.getElementById('postContent').value = ''; 
+                document.getElementById('postLink').value = '';
+                document.getElementById('imageInput').value = ''; 
+                document.getElementById('fileName').textContent = '';
+                checkDailyLimit(); 
+                loadPosts();
+            } else {
+                alert('Ошибка публикации: ' + error.message);
             }
-            btn.disabled = false; btn.textContent = t('feed_publish') || 'Опубликовать';
-            checkNightMode(); checkDailyLimit();
+            
+            btn.disabled = false; 
+            btn.textContent = t('feed_publish') || 'Опубликовать';
+            checkNightMode(); 
+            checkDailyLimit();
         };
         
         async function loadPosts() {
-            const list = document.getElementById('feedList'); list.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
+            const list = document.getElementById('feedList'); 
+            list.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
             const { data: posts } = await supabaseClient.from('posts').select('*').order('created_at', { ascending: false });
             if (!posts) return;
             const { data: likes } = await supabaseClient.from('likes').select('post_id, user_id');
@@ -267,14 +315,16 @@
                 const isOwner = post.user_id === currentUser.id;
                 const postLikes = likes.filter(l => l.post_id === post.id);
                 const isLiked = postLikes.some(l => l.user_id === currentUser.id);
-                const isLong = post.content.length > 300;
+                const isLong = post.content && post.content.length > 300;
                 const contentClass = isLong ? 'post-content collapsed' : 'post-content';
-                const readMoreBtn = isLong ? `<button class="read-more-btn" onclick="toggleReadMore(this)">${t('feed_read_more') || 'Читать еще...'}</button>` : '';
+                const readMoreBtn = isLong ? `<button class="read-more-btn" onclick="toggleReadMore(this)">Читать еще...</button>` : '';
 
                 let mediaHtml = '';
                 if (post.image_url) mediaHtml += `<img src="${post.image_url}" class="post-image">`;
                 if (post.media_url) {
-                    const pid = `p-${post.id}`; let embedHtml = ''; const url = post.media_url;
+                    const pid = `p-${post.id}`; 
+                    let embedHtml = ''; 
+                    const url = post.media_url;
                     if (url.includes('youtube.com/watch') || url.includes('youtu.be')) {
                         let videoId = url.split('v=')[1] || (url.match(/youtu\.be\/([^?]+)/) || [])[1];
                         if (videoId) { videoId = videoId.split('&')[0]; embedHtml = `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`; }
@@ -289,7 +339,7 @@
                     } else {
                         embedHtml = `<iframe src="${url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
                     }
-                    mediaHtml += `<div class="media-box"><button class="play-btn" onclick="toggleMedia('${pid}', this)">${t('feed_play') || '▶ Играть / Показать'}</button><div id="${pid}" class="player-frame">${embedHtml}</div></div>`;
+                    mediaHtml += `<div class="media-box"><button class="play-btn" onclick="toggleMedia('${pid}', this)">▶ Играть / Показать</button><div id="${pid}" class="player-frame">${embedHtml}</div></div>`;
                 }
 
                 return `<div class="feed-item">
@@ -299,15 +349,15 @@
                         </a>
                         <span class="timestamp">${new Date(post.created_at).toLocaleString()}</span>
                     </div>
-                    <div class="${contentClass}">${post.content}</div>
+                    <div class="${contentClass}">${post.content || ''}</div>
                     ${readMoreBtn}${mediaHtml}
                     <div class="post-footer">
                         <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}', this)">
                             ${isLiked ? '❤️' : '🤍'} <span>${postLikes.length}</span>
                         </button>
                         ${isOwner ? `<div class="edit-del">
-                            <button class="icon-btn" onclick="editPost('${post.id}', \`${post.content.replace(/`/g, '\\`')}\`)">✏️</button>
-                            <button class="icon-btn" onclick="deletePost('${post.id}')">🗑️</button>
+                            <button class="icon-btn" onclick="editPost('${post.id}', \`${(post.content || '').replace(/`/g, '\\`')}\`)">✏️</button>
+                            <button class="icon-btn" onclick="deletePost('${post.id}')">️</button>
                         </div>` : ''}
                     </div>
                 </div>`;
@@ -317,17 +367,33 @@
 
         window.toggleReadMore = (btn) => {
             const content = btn.previousElementSibling;
-            if (content.classList.contains('collapsed')) { content.classList.remove('collapsed'); btn.textContent = t('feed_collapse') || 'Свернуть'; } 
-            else { content.classList.add('collapsed'); btn.textContent = t('feed_read_more') || 'Читать еще...'; }
+            if (content.classList.contains('collapsed')) { 
+                content.classList.remove('collapsed'); 
+                btn.textContent = 'Свернуть'; 
+            } else { 
+                content.classList.add('collapsed'); 
+                btn.textContent = 'Читать еще...'; 
+            }
         };
 
         window.toggleMedia = (id, btn) => {
             const el = document.getElementById(id);
             if (el.style.display === 'block') {
-                el.style.display = 'none'; btn.textContent = t('feed_play') || '▶ Играть / Показать';
+                el.style.display = 'none'; 
+                btn.textContent = '▶ Играть / Показать';
                 const media = el.querySelector('iframe, audio, video');
-                if (media) { if (media.pause) media.pause(); if (media.tagName === 'IFRAME') { const s = media.src; media.src = ''; media.src = s; } }
-            } else { el.style.display = 'block'; btn.textContent = t('feed_hide') || '⏸ Скрыть'; }
+                if (media) { 
+                    if (media.pause) media.pause(); 
+                    if (media.tagName === 'IFRAME') { 
+                        const s = media.src; 
+                        media.src = ''; 
+                        media.src = s; 
+                    } 
+                }
+            } else { 
+                el.style.display = 'block'; 
+                btn.textContent = ' Скрыть'; 
+            }
         };
 
         window.toggleLike = async (postId, btn) => {
@@ -337,8 +403,21 @@
             loadPosts();
         };
 
-        window.deletePost = async (id) => { if (confirm(t('feed_delete_confirm') || 'Удалить?')) { await supabaseClient.from('posts').delete().eq('id', id); checkDailyLimit(); loadPosts(); } };
-        window.editPost = async (id, text) => { const t_text = prompt(t('feed_edit_prompt') || 'Редактировать:', text); if (t_text !== null && t_text !== text) { await supabaseClient.from('posts').update({content: t_text}).eq('id', id); loadPosts(); } };
+        window.deletePost = async (id) => { 
+            if (confirm('Удалить?')) { 
+                await supabaseClient.from('posts').delete().eq('id', id); 
+                checkDailyLimit(); 
+                loadPosts(); 
+            } 
+        };
+        
+        window.editPost = async (id, text) => { 
+            const newText = prompt('Редактировать:', text); 
+            if (newText !== null && newText !== text) { 
+                await supabaseClient.from('posts').update({content: newText}).eq('id', id); 
+                loadPosts(); 
+            } 
+        };
 
         init();
     </script>
