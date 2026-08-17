@@ -58,7 +58,7 @@ const knowledgeBase = [
     answer: '🌐 С удовольствием следите за нами <a href="https://max.ru/channel_SmartSocial_news" target="_blank" style="color: var(--accent); text-decoration: underline;">в канале MAX</a>'
    }
 ]
-
+ 
 function initAngelWidget() {
     // Создаем HTML виджета с поиском
     const widgetHTML = `
