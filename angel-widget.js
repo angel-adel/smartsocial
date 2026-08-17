@@ -55,7 +55,7 @@ const knowledgeBase = [
     },
    {
     keywords: ['новости', 'обновления', 'канал', 'где следить'],
-    answer: '🌐 С удовольствием следите за нами <a href="https://max.ru/channel_SmartSocial_" target="_blank" style="color: var(--accent); text-decoration: underline;">в канале MAX</a>'
+    answer: '🌐 С удовольствием следите за нами <a href="https://max.ru/channel_SmartSocial_news" target="_blank" style="color: var(--accent); text-decoration: underline;">в канале MAX</a>'
    }
 ]
 
