@@ -13,6 +13,7 @@
     
     <script src="config.js"></script>
     <script src="i18n.js"></script>
+    <script src="angel-widget.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -49,30 +50,27 @@
         .nav-item { position: relative; display: inline-flex; align-items: center; }
         .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 4px; font-weight: bold; display: none; }
         .badge.show { display: inline-block; }
-        .burger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); padding: 0 10px; }
+        .burger-btn { display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-primary); padding: 8px 12px; min-width: 44px; min-height: 44px; }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .burger-btn { display: block; }
-            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 99; }
+            .controls { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); flex-direction: column; padding: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); z-index: 101; max-height: 80vh; overflow-y: auto; }
             .controls.active { display: flex; }
             .controls a, .controls button, .controls select, .controls .nav-item { width: 100%; margin: 5px 0; text-align: center; justify-content: center; }
         }
 
-        .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
+        .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 16px; flex: 1; }
         .page-title { font-size: 24px; margin-bottom: 20px; text-align: center; }
         .guest-list { display: flex; flex-direction: column; gap: 12px; }
-        .guest-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: inherit; transition: transform 0.2s; }
+        .guest-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px var(--shadow); cursor: pointer; }
         .guest-card:hover { transform: translateY(-2px); border-color: var(--accent); }
         .guest-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; }
         .guest-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .guest-info { flex: 1; }
-        .guest-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
-        .guest-time { font-size: 12px; color: var(--text-secondary); }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .guest-info { flex: 1; min-width: 0; }
+        .guest-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .guest-date { font-size: 12px; color: var(--text-secondary); }
+        .empty-state { text-align: center; padding: 30px 20px; color: var(--text-secondary); font-size: 14px; background: var(--bg-secondary); border-radius: 16px; border: 1px dashed var(--border); }
 
-        .angel-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
-        .angel-bubble { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 28px; color: white; }
-        .angel-window { position: absolute; bottom: 70px; right: 0; width: 300px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px var(--shadow); display: none; }
         .theme-toggle { position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px var(--shadow); font-size: 20px; z-index: 1000; }
     </style>
 </head>
@@ -92,7 +90,7 @@
                 <a href="chat.html" class="btn-sm" data-i18n="nav_chat">💬 Чат</a>
                 <span id="chatBadge" class="badge">0</span>
             </div>
-            <a href="friends.html" class="btn-sm" data-i18n="nav_friends"> Друзья</a>
+            <a href="friends.html" class="btn-sm" data-i18n="nav_friends">👥 Друзья <span id="friendsBadge" class="badge">0</span></a>
             <a href="about.html" class="btn-sm" data-i18n="nav_about">ℹ️ О сайте</a>
             <div class="nav-item">
                 <a href="guests.html" class="btn-sm" data-i18n="nav_guests">👀 Гости</a>
@@ -104,28 +102,19 @@
 
     <div class="container">
         <h1 class="page-title" data-i18n="guests_title">👀 Мои гости</h1>
-        <div class="guest-list" id="guestList">
+        <div class="guest-list" id="guestsList">
             <div class="empty-state">Загрузка...</div>
         </div>
     </div>
 
-    <div class="angel-widget">
-        <div class="angel-window" id="angelWindow">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <strong>Ангел-Хранитель</strong>
-                <span style="cursor:pointer;" onclick="document.getElementById('angelWindow').style.display='none'"></span>
-            </div>
-            <p style="font-size:14px; color:var(--text-secondary)">Кто-то проявил к тебе интерес. Ответь взаимностью или просто улыбнись! 👼</p>
-        </div>
-        <div class="angel-bubble" onclick="document.getElementById('angelWindow').style.display='block'">👼</div>
-    </div>
-    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="theme-toggle" id="themeToggle"></button>
 
     <script>
         if (typeof SUPABASE_URL === 'undefined') { alert('Ошибка конфига'); window.location.href = 'index.html'; }
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null;
 
+        // === БУРГЕР-МЕНЮ ===
         const burgerBtn = document.getElementById('burgerBtn');
         const navControls = document.getElementById('navControls');
         if (burgerBtn && navControls) {
@@ -133,16 +122,23 @@
             navControls.querySelectorAll('a').forEach(link => link.onclick = () => navControls.classList.remove('active'));
         }
 
+        // === СЧЕТЧИКИ (БЕЙДЖИ) ===
         async function updateBadges() {
             if (!currentUser) return;
             const { count: guestCount } = await supabaseClient.from('profile_visits').select('*', { count: 'exact', head: true }).eq('host_id', currentUser.id).eq('is_read', false);
             const gBadge = document.getElementById('guestBadge');
             if (gBadge) { gBadge.textContent = guestCount > 99 ? '99+' : guestCount; guestCount > 0 ? gBadge.classList.add('show') : gBadge.classList.remove('show'); }
+            
             const { count: msgCount } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', currentUser.id).eq('is_read', false);
             const cBadge = document.getElementById('chatBadge');
             if (cBadge) { cBadge.textContent = msgCount > 99 ? '99+' : msgCount; msgCount > 0 ? cBadge.classList.add('show') : cBadge.classList.remove('show'); }
+            
+            const { count: friendReqCount } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', currentUser.id).eq('status', 'pending');
+            const fBadge = document.getElementById('friendsBadge');
+            if (fBadge) { fBadge.textContent = friendReqCount > 99 ? '99+' : friendReqCount; friendReqCount > 0 ? fBadge.classList.add('show') : fBadge.classList.remove('show'); }
         }
 
+        // === ТЕМА ===
         const themeToggle = document.getElementById('themeToggle');
         if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
         themeToggle.onclick = () => {
@@ -152,46 +148,74 @@
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
         };
 
+        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
+
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) return window.location.href = 'index.html';
             currentUser = session.user;
-
-            // СБРОС СЧЕТЧИКА ГОСТЕЙ: Помечаем все визиты как прочитанные
-            await supabaseClient.from('profile_visits').update({ is_read: true }).eq('host_id', currentUser.id).eq('is_read', false);
-
+            
             updateBadges();
             loadGuests();
         }
 
         async function loadGuests() {
-            const list = document.getElementById('guestList');
-            const { data: visits } = await supabaseClient.from('profile_visits').select('visitor_id, visited_at').eq('host_id', currentUser.id).order('visited_at', { ascending: false });
+            const list = document.getElementById('guestsList');
             
-            if (!visits || visits.length === 0) {
-                list.innerHTML = '<div class="empty-state" data-i18n="guests_empty">Пока никто не заходил в гости 🌙</div>';
-                return;
+            try {
+                // 1. Получаем все визиты к нам
+                const { data: visits, error: visitError } = await supabaseClient
+                    .from('profile_visits')
+                    .select('visitor_id, created_at')
+                    .eq('host_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (visitError) throw visitError;
+
+                // 2. Сбрасываем счетчик непрочитанных
+                await supabaseClient.from('profile_visits').update({ is_read: true }).eq('host_id', currentUser.id).eq('is_read', false);
+
+                if (!visits || visits.length === 0) {
+                    list.innerHTML = '<div class="empty-state" data-i18n="guests_empty">Пока никто не заходил в твой профиль. Поделись ссылкой! 🔗</div>';
+                    return;
+                }
+
+                // 3. Получаем данные посетителей (уникальные ID)
+                const visitorIds = [...new Set(visits.map(v => v.visitor_id))];
+                const { data: users, error: userError } = await supabaseClient
+                    .from('users')
+                    .select('id, username, avatar_url')
+                    .in('id', visitorIds);
+
+                if (userError) throw userError;
+
+                // 4. Рендерим список
+                const safeUsers = users || [];
+                list.innerHTML = safeUsers.map(u => {
+                    // Находим последний визит этого пользователя
+                    const lastVisit = visits.find(v => v.visitor_id === u.id);
+                    const visitDate = new Date(lastVisit.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+                    
+                    return `
+                    <div class="guest-card" onclick="location.href='profile.html?user_id=${u.id}'">
+                        <div class="guest-avatar">
+                            ${u.avatar_url ? `<img src="${u.avatar_url}">` : '👤'}
+                        </div>
+                        <div class="guest-info">
+                            <div class="guest-name">${u.username || 'Аноним'}</div>
+                            <div class="guest-date">Был(а) ${visitDate}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                // Обновляем бейджи после сброса
+                updateBadges();
+
+            } catch (err) {
+                alert('Ошибка загрузки гостей: ' + err.message);
             }
-
-            const visitorIds = visits.map(v => v.visitor_id);
-            const { data: users } = await supabaseClient.from('users').select('id, username, avatar_url').in('id', visitorIds);
-
-            list.innerHTML = users.map(u => {
-                const lastVisit = visits.find(v => v.visitor_id === u.id);
-                const time = new Date(lastVisit.visited_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-                const avatarHtml = u.avatar_url ? `<img src="${u.avatar_url}">` : '👤';
-                return `
-                <a href="profile.html?user_id=${u.id}" class="guest-card">
-                    <div class="guest-avatar">${avatarHtml}</div>
-                    <div class="guest-info">
-                        <div class="guest-name">${u.username || 'Аноним'}</div>
-                        <div class="guest-time">Был(а) ${time}</div>
-                    </div>
-                </a>`;
-            }).join('');
         }
 
-        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); window.location.href = 'index.html'; };
         init();
     </script>
 </body>
