@@ -1,7 +1,5 @@
-// footer.js
-document.addEventListener('DOMContentLoaded', () => {
-    const year = new Date().getFullYear();
-    const footerHTML = `
+const footerHTML = `
+    <div class="container" style="max-width: 600px; margin: 0 auto; padding: 0 16px;">
         <footer style="
             text-align: center;
             padding: 20px 0 10px;
@@ -12,6 +10,5 @@ document.addEventListener('DOMContentLoaded', () => {
         ">
             © ${year} Smart Social. Все права защищены. 🌙
         </footer>
-    `;
-    document.body.insertAdjacentHTML('beforeend', footerHTML);
-});
+    </div>
+`;
