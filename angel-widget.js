@@ -26,7 +26,7 @@ var knowledgeBase = [
 
 // === НАСТРОЙКИ ПОДКЛЮЧЕНИЯ К OLLAMA ===
 // ВНИМАНИЕ: Для работы в браузере с Vercel нужен HTTPS или туннель (ngrok/localtunnel)!
-var OLLAMA_HOST = 'http://192.168.0.102:11434';  
+var OLLAMA_HOST = 'https://8b410c82d6492936-95-32-184-49.serveousercontent.com';  
 var MODEL_NAME = 'qwen2.5:0.5b';
 
 // === ПОИСК В БАЗЕ ЗНАНИЙ ===
