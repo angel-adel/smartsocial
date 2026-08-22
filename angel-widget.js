@@ -4,7 +4,7 @@
 // ============================================================
 
 // === НАСТРОЙКИ ===
-var OLLAMA_HOST = 'https://bd5c98ad56ef5c.lhr.life'; // Твоя ссылка из localhost.run
+var OLLAMA_HOST = 'https://f7d929e7eeb824.lhr.life'; // Твоя ссылка из localhost.run
 var MODEL_NAME = 'qwen2.5:0.5b';
 
 // === БАЗА ЗНАНИЙ (Fallback, если ИИ не отвечает) ===
