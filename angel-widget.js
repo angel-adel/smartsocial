@@ -1,14 +1,12 @@
-// === ВИДЖЕТ АНГЕЛА-ХРАНИТЕЛЯ С ПОИСКОМ ===
-
-// База знаний (вопросы и ответы)
+// === БАЗА ЗНАНИЙ (СОХРАНЕНЫ ВСЕ ССЫЛКИ) ===
 const knowledgeBase = [
     {
         keywords: ['лимит', 'пост', 'публикация', 'сколько', 'можно'],
-        answer: ' Лимит публикаций: 10 постов в сутки. Сброс происходит в 00:00. Качество важнее количества!'
+        answer: '📊 Лимит публикаций: 10 постов в сутки. Сброс происходит в 00:00. Качество важнее количества!'
     },
     {
         keywords: ['ночной', 'режим', 'ночь', 'время', 'публикация', '23', '7'],
-        answer: ' Ночной режим: Публикации доступны с 07:00 до 23:00. Дай себе и другим отдых!'
+        answer: '🌙 Ночной режим: Публикации доступны с 07:00 до 23:00. Дай себе и другим отдых!'
     },
     {
         keywords: ['аватар', 'фото', 'загрузить', 'сменить', 'картинка'],
@@ -16,7 +14,7 @@ const knowledgeBase = [
     },
     {
         keywords: ['пароль', 'сменить', 'изменить', 'безопасность'],
-        answer: ' Сменить пароль можно в своём профиле, нажав кнопку "Сменить пароль". Введи текущий пароль и новый (минимум 6 символов).'
+        answer: '🔐 Сменить пароль можно в своём профиле, нажав кнопку "Сменить пароль". Введи текущий пароль и новый (минимум 6 символов).'
     },
     {
         keywords: ['друзья', 'заявка', 'добавить', 'принять', 'отклонить'],
@@ -36,7 +34,7 @@ const knowledgeBase = [
     },
     {
         keywords: ['язык', 'перевод', 'русский', 'украинский', 'english'],
-        answer: ' Выбери язык в выпадающем списке в шапке сайта. Доступны: русский, украинский, английский, испанский, немецкий.'
+        answer: '🌍 Выбери язык в выпадающем списке в шапке сайта. Доступны: русский, украинский, английский, испанский, немецкий.'
     },
     {
         keywords: ['тема', 'темная', 'светлая', 'ночная', 'дизайн'],
@@ -47,9 +45,10 @@ const knowledgeBase = [
         answer: '🔍 В разделе "Поиск" можно найти других пользователей по имени или статусу. Просто введи текст в поле поиска.'
     },
     {
-        keywords: ['ошибка', 'не работает', 'баг', 'проблема', 'помощь'],        answer: '🆘 Если что-то не работает, обнови страницу (F5). Если проблема осталась — напиши администрации с описанием проблемы.'
+        keywords: ['ошибка', 'не работает', 'баг', 'проблема', 'помощь'],
+        answer: '🆘 Если что-то не работает, обнови страницу (F5). Если проблема осталась — напиши администрации с описанием проблемы.'
     },
-        {
+    {
         keywords: ['регистрация', 'забыл пароль', 'восстановить', 'сбросить пароль', 'нет доступа', 'вход'],
         answer: '📝 Регистрация происходит через email и пароль. ' +
             'Если забыл пароль — используй функцию восстановления, написав администраторам на ' +
@@ -66,28 +65,81 @@ const knowledgeBase = [
             'Тема письма и вопрос будут заполнены автоматически. ' +
             'Используй любой адрес для восстановления, ведь имя то одно, а пароль будет другим.🥰'
     },
-       {
+    {
         keywords: ['новости', 'обновления', 'канал', 'где следить', 'max', 'подписаться'],
-        answer: ' С удовольствием следите за нами ' +
+        answer: '📢 С удовольствием следите за нами ' +
             '<a href="https://max.ru/channel_SmartSocial_news" ' +
             'target="_blank" ' +
             'style="color: var(--accent); text-decoration: underline;">' +
             'в канале MAX' +
             '</a>'
-    },
-]
- 
+    }
+];
+
+// === ПОДКЛЮЧЕНИЕ К ЛОКАЛЬНОЙ МОДЕЛИ (OLLAMA) ===
+const OLLAMA_URL = 'http://localhost:11434/api/generate';
+
+async function askOllama(question) {
+    try {
+        const response = await fetch(OLLAMA_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'tinyllama',
+                prompt: `Ты — Ангел-Хранитель социальной сети Smart Social. Отвечай кратко, по делу, ТОЛЬКО на русском языке. Если не знаешь ответа — предложи написать на почту smartsocials@mail.ru.\n\nВопрос: ${question}\nОтвет:`,
+                stream: false,
+                max_tokens: 200
+            })
+        });
+        const data = await response.json();
+        return data.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru';
+    } catch (error) {
+        console.error('Ошибка Ollama:', error);
+        return '⚠️ Не удалось подключиться к оператору. Проверьте, запущен ли сервер Ollama.';
+    }
+}
+
+// === ГИБРИДНЫЙ ПОИСК (БАЗА ЗНАНИЙ → OLLAMA) ===
+async function searchKnowledgeBase(query) {
+    const resultsDiv = document.getElementById('angelResults');
+    const queryLower = query.toLowerCase();
+
+    // Ищем в базе знаний
+    const results = knowledgeBase.filter(item =>
+        item.keywords.some(keyword => queryLower.includes(keyword) || keyword.includes(queryLower))
+    );
+
+    if (results.length > 0) {
+        resultsDiv.innerHTML = results.map(item => `
+            <div style="background:var(--bg-primary); padding:12px; border-radius:8px; margin-bottom:8px; border-left:3px solid var(--accent);">
+                ${item.answer}
+            </div>
+        `).join('');
+    } else {
+        // Если не найдено — подключаем оператора (Ollama)
+        resultsDiv.innerHTML = `
+            <div style="text-align:center; padding:10px; color:var(--text-secondary);">
+                🔄 Подключаю оператора...
+            </div>
+        `;
+        const answer = await askOllama(query);
+        resultsDiv.innerHTML = `
+            <div style="background:var(--bg-primary); padding:12px; border-radius:8px; border-left:3px solid var(--accent);">
+                ${answer}
+            </div>
+        `;
+    }
+}
+
+// === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
 function initAngelWidget() {
-    // Создаем HTML виджета с поиском
     const widgetHTML = `
         <div class="angel-widget" id="angelWidget">
             <div class="angel-window" id="angelWindow">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <strong style="font-size:16px;"> Ангел-Хранитель</strong>
-                    <span style="cursor:pointer; font-size:18px;" onclick="closeAngelWindow()"></span>
+                    <strong style="font-size:16px;">👼 Ангел-Хранитель</strong>
+                    <span style="cursor:pointer; font-size:18px;" onclick="closeAngelWindow()">✕</span>
                 </div>
-                
-                <!-- Поле поиска -->
                 <div style="margin-bottom:12px;">
                     <input 
                         type="text" 
@@ -97,28 +149,25 @@ function initAngelWidget() {
                         onkeypress="handleAngelSearch(event)"
                     >
                 </div>
-                
-                <!-- Результаты поиска -->
                 <div id="angelResults" style="max-height:300px; overflow-y:auto; font-size:14px; line-height:1.5;">
                     <div style="color:var(--text-secondary); text-align:center; padding:10px;">
                         Задай вопрос, и я помогу! 💫
                     </div>
                 </div>
-                
-                <!-- Быстрые подсказки -->
                 <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
                     <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">Популярные вопросы:</div>
                     <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                        <button class="angel-quick-btn" onclick="quickSearch('лимит постов')">Лимит постов</button>
-                        <button class="angel-quick-btn" onclick="quickSearch('как сменить аватар')">Аватар</button>
-                        <button class="angel-quick-btn" onclick="quickSearch('ночной режим')">Ночной режим</button>
-                        <button class="angel-quick-btn" onclick="quickSearch('друзья')">Друзья</button>
+                        <button class="angel-quick-btn" onclick="quickSearch('лимит постов')">📊 Лимит</button>
+                        <button class="angel-quick-btn" onclick="quickSearch('как сменить аватар')">📷 Аватар</button>
+                        <button class="angel-quick-btn" onclick="quickSearch('ночной режим')">🌙 Ночной режим</button>
+                        <button class="angel-quick-btn" onclick="quickSearch('друзья')">👥 Друзья</button>
+                        <button class="angel-quick-btn" onclick="quickSearch('чат')">💬 Чат</button>
                     </div>
                 </div>
             </div>
             <div class="angel-bubble" id="angelBubble" onclick="toggleAngelWindow()">👼</div>
         </div>
-    `;    
+    `;
     document.body.insertAdjacentHTML('beforeend', widgetHTML);
     addAngelStyles();
     setupScrollBehavior();
@@ -135,8 +184,7 @@ function toggleAngelWindow() {
 }
 
 function closeAngelWindow() {
-    const window = document.getElementById('angelWindow');
-    window.style.display = 'none';
+    document.getElementById('angelWindow').style.display = 'none';
 }
 
 function handleAngelSearch(event) {
@@ -153,32 +201,6 @@ function quickSearch(query) {
     searchKnowledgeBase(query);
 }
 
-function searchKnowledgeBase(query) {
-    const resultsDiv = document.getElementById('angelResults');
-    const queryLower = query.toLowerCase();
-    
-    // Ищем совпадения по ключевым словам
-    const results = knowledgeBase.filter(item => 
-        item.keywords.some(keyword => queryLower.includes(keyword) || keyword.includes(queryLower))
-    );
-    
-    if (results.length > 0) {
-        // Показываем найденные ответы
-        resultsDiv.innerHTML = results.map(item => `
-            <div style="background:var(--bg-primary); padding:12px; border-radius:8px; margin-bottom:8px; border-left:3px solid var(--accent);">
-                ${item.answer}
-            </div>        `).join('');
-    } else {
-        // Если ничего не найдено
-        resultsDiv.innerHTML = `
-            <div style="background:var(--bg-primary); padding:12px; border-radius:8px; text-align:center; color:var(--text-secondary);">
-                😔 Не удалось найти ответ на вопрос "<strong>${query}</strong>"<br><br>
-                Попробуй сформулировать иначе или выбери из популярных вопросов ниже.
-            </div>
-        `;
-    }
-}
-
 function addAngelStyles() {
     const style = document.createElement('style');
     style.textContent = `
@@ -189,12 +211,10 @@ function addAngelStyles() {
             z-index: 999;
             transition: all 0.3s ease;
         }
-        
         .angel-widget.hidden {
             transform: translateY(100px);
             opacity: 0;
         }
-        
         .angel-bubble {
             width: 56px;
             height: 56px;
@@ -210,13 +230,12 @@ function addAngelStyles() {
             transition: all 0.3s ease;
             opacity: 0.85;
         }
-        
         .angel-bubble:hover {
             opacity: 1;
             transform: scale(1.1);
         }
-        
-        .angel-window {            position: absolute;
+        .angel-window {
+            position: absolute;
             bottom: 70px;
             right: 0;
             width: 340px;
@@ -229,12 +248,10 @@ function addAngelStyles() {
             display: none;
             animation: slideUp 0.3s ease;
         }
-        
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
         .angel-quick-btn {
             background: var(--bg-primary);
             border: 1px solid var(--border);
@@ -245,13 +262,11 @@ function addAngelStyles() {
             color: var(--text-secondary);
             transition: all 0.2s ease;
         }
-        
         .angel-quick-btn:hover {
             background: var(--accent);
             color: white;
             border-color: var(--accent);
         }
-        
         @media (max-width: 768px) {
             .angel-bubble {
                 width: 48px;
@@ -259,20 +274,18 @@ function addAngelStyles() {
                 font-size: 24px;
                 opacity: 0.75;
             }
-            
             .angel-window {
                 width: 300px;
                 bottom: 60px;
                 right: -10px;
             }
-        }        
+        }
         @media (max-width: 360px) {
             .angel-bubble {
                 width: 44px;
                 height: 44px;
                 font-size: 22px;
             }
-            
             .angel-window {
                 width: 280px;
             }
@@ -285,18 +298,15 @@ function setupScrollBehavior() {
     let lastScrollY = window.scrollY;
     const widget = document.getElementById('angelWidget');
     let scrollTimeout;
-    
+
     window.addEventListener('scroll', () => {
         const currentScrollY = window.scrollY;
-        
         if (currentScrollY > lastScrollY && currentScrollY > 100) {
             widget.classList.add('hidden');
         } else {
             widget.classList.remove('hidden');
         }
-        
         lastScrollY = currentScrollY;
-        
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
             widget.classList.remove('hidden');
@@ -304,9 +314,9 @@ function setupScrollBehavior() {
     }, { passive: true });
 }
 
-// Запускаем при загрузке
+// === ЗАПУСК ===
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAngelWidget);
 } else {
     initAngelWidget();
-          }
+}
