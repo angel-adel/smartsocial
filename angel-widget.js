@@ -77,7 +77,7 @@ const knowledgeBase = [
 ];
 
 // === ПОДКЛЮЧЕНИЕ К ЛОКАЛЬНОЙ МОДЕЛИ (OLLAMA) ===
-const OLLAMA_URL = 'http://localhost:11434/api/generate';
+const OLLAMA_HOST = 'http://192.168.0.102:11434';
 
 async function askOllama(question) {
     try {
