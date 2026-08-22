@@ -1,12 +1,12 @@
 cat > angel-widget.js << 'EOF'
 // ============================================================
 //  👼 АНГЕЛ-ХРАНИТЕЛЬ SMART SOCIAL
-//  ГИБРИДНАЯ ВЕРСИЯ: CLI + ВИДЖЕТ ДЛЯ САЙТА
-//  Версия: 6.0 (ФИНАЛЬНАЯ)
+//  Упрощённая гибридная версия для телефона
+//  Версия: 7.0 (СТАБИЛЬНАЯ)
 // ============================================================
 
 // === БАЗА ЗНАНИЙ ===
-const knowledgeBase = [
+var knowledgeBase = [
     { keywords: ['лимит', 'пост', 'публикация'], answer: '📊 В Smart Social лимит: 10 постов в сутки. Сброс в 00:00.' },
     { keywords: ['ночной', 'режим', 'ночь'], answer: '🌙 Ночной режим: публикации с 07:00 до 23:00.' },
     { keywords: ['аватар', 'фото', 'сменить'], answer: '📷 Сменить аватар в профиле, макс. 5MB.' },
@@ -25,23 +25,24 @@ const knowledgeBase = [
     { keywords: ['голосовое', 'сообщение', 'аудио'], answer: '🎤 В разработке! Голосовые сообщения в чате появятся скоро.' }
 ];
 
-const OLLAMA_HOST = 'http://192.168.0.102:11434';
-const MODEL_NAME = 'qwen2.5:0.5b';
-const TIMEOUT_MS = 120000;
+var OLLAMA_HOST = 'http://192.168.0.102:11434';
+var MODEL_NAME = 'qwen2.5:0.5b';
 
-// === ЛОГИКА ===
 function searchKnowledgeBase(query) {
-    const lower = query.toLowerCase();
-    for (const item of knowledgeBase) {
-        if (item.keywords.some(k => lower.includes(k) || k.includes(lower))) {
-            return item.answer;
+    var lower = query.toLowerCase();
+    for (var i = 0; i < knowledgeBase.length; i++) {
+        var item = knowledgeBase[i];
+        for (var j = 0; j < item.keywords.length; j++) {
+            if (lower.includes(item.keywords[j]) || item.keywords[j].includes(lower)) {
+                return item.answer;
+            }
         }
     }
     return null;
 }
 
 // ============================================================
-//  ЧАСТЬ 1: ВИДЖЕТ ДЛЯ САЙТА (использует fetch)
+//  ВИДЖЕТ ДЛЯ САЙТА (БЕЗ require, БЕЗ axios)
 // ============================================================
 function getWidgetHTML() {
     return `
@@ -139,9 +140,8 @@ function getWidgetStyles() {
     `;
 }
 
-async function askOllamaBrowser(question) {
-    try {
-        const systemPrompt = `
+function getSystemPrompt() {
+    return `
 Ты — Ангел-Хранитель социальной сети Smart Social («Малышка»).
 
 ===== О ПРОЕКТЕ =====
@@ -175,44 +175,63 @@ Supabase, Vercel, Vanilla JS
 4. Если не знаешь — предложи написать на почту.
 5. Отвечай тёпло, дружелюбно, но строго в рамках проекта.
 `;
+}
 
-        const response = await fetch(`${OLLAMA_HOST}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: MODEL_NAME,
-                prompt: `${systemPrompt}\n\nВопрос: ${question}\n\nОтвет:`,
-                stream: false,
-                options: {
-                    num_predict: 200,
-                    temperature: 0.2,
-                    top_p: 0.85,
-                    repeat_penalty: 1.2
-                }
-            }),
-            signal: AbortSignal.timeout(TIMEOUT_MS)
+function askOllamaBrowser(question) {
+    return new Promise(function(resolve) {
+        var systemPrompt = getSystemPrompt();
+        var data = JSON.stringify({
+            model: MODEL_NAME,
+            prompt: systemPrompt + '\n\nВопрос: ' + question + '\n\nОтвет:',
+            stream: false,
+            options: {
+                num_predict: 200,
+                temperature: 0.2,
+                top_p: 0.85,
+                repeat_penalty: 1.2
+            }
         });
 
-        const data = await response.json();
-        return data.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru';
-    } catch (error) {
-        if (error.name === 'TimeoutError') {
-            return '⏱️ Оператор думает слишком долго. Попробуйте позже.';
-        }
-        return '⚠️ Сервер временно недоступен. Напишите на smartsocials@mail.ru';
-    }
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', OLLAMA_HOST + '/api/generate', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 120000;
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    resolve(response.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru');
+                } catch (e) {
+                    resolve('⚠️ Ошибка обработки ответа от оператора.');
+                }
+            } else {
+                resolve('⚠️ Сервер вернул ошибку: ' + xhr.status);
+            }
+        };
+
+        xhr.onerror = function() {
+            resolve('⚠️ Сервер временно недоступен. Напишите на smartsocials@mail.ru');
+        };
+
+        xhr.ontimeout = function() {
+            resolve('⏱️ Оператор думает слишком долго. Попробуйте позже.');
+        };
+
+        xhr.send(data);
+    });
 }
 
 function initAngelWidget() {
-    const style = document.createElement('style');
+    var style = document.createElement('style');
     style.textContent = getWidgetStyles();
     document.head.appendChild(style);
 
     document.body.insertAdjacentHTML('beforeend', getWidgetHTML());
 
     window.toggleAngelWindow = function() {
-        const window = document.getElementById('angelWindow');
-        const bubble = document.getElementById('angelBubble');
+        var window = document.getElementById('angelWindow');
+        var bubble = document.getElementById('angelBubble');
         if (window.style.display === 'block') {
             window.style.display = 'none';
             bubble.style.display = 'flex';
@@ -233,21 +252,22 @@ function initAngelWidget() {
         window.searchKnowledge();
     };
 
-    window.searchKnowledge = async function() {
-        const query = document.getElementById('angelSearch').value.trim();
+    window.searchKnowledge = function() {
+        var query = document.getElementById('angelSearch').value.trim();
         if (!query) return;
 
-        const resultsDiv = document.getElementById('angelResults');
+        var resultsDiv = document.getElementById('angelResults');
         resultsDiv.innerHTML = '<div style="text-align:center; padding:10px;">⏳ Ищу ответ...</div>';
 
-        const cached = searchKnowledgeBase(query);
+        var cached = searchKnowledgeBase(query);
         if (cached) {
-            resultsDiv.innerHTML = `<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #4A6CF7;">📚 ${cached}</div>`;
+            resultsDiv.innerHTML = '<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #4A6CF7;">📚 ' + cached + '</div>';
             return;
         }
 
-        const answer = await askOllamaBrowser(query);
-        resultsDiv.innerHTML = `<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #4A6CF7;">🤖 ${answer}</div>`;
+        askOllamaBrowser(query).then(function(answer) {
+            resultsDiv.innerHTML = '<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #4A6CF7;">🤖 ' + answer + '</div>';
+        });
     };
 }
 
@@ -258,56 +278,27 @@ if (typeof window !== 'undefined' && window.document) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAngelWidget);
     } else {
-        // Если страница уже загружена — запускаем с задержкой
         setTimeout(initAngelWidget, 300);
     }
 } else {
     // ============================================================
-    //  ЧАСТЬ 2: CLI ДЛЯ TERMUX (использует axios)
+    //  ЗАПУСК В TERMUX (CLI)
     // ============================================================
-    const axios = require('axios');
-    const readline = require('readline');
+    try {
+        var axios = require('axios');
+    } catch (e) {
+        console.error('❌ Установи axios: npm install axios');
+        process.exit(1);
+    }
 
-    async function askOllamaCLI(question) {
-        try {
-            const systemPrompt = `
-Ты — Ангел-Хранитель социальной сети Smart Social («Малышка»).
+    var readline = require('readline');
 
-===== О ПРОЕКТЕ =====
-• Название: Smart Social («Малышка»)
-• Дата основания: 9 мая 2026 года
-• Создатель: Торопцев Дмитрий
-• Миссия: уютная, безопасная соцсеть без токсичности и рекламы
-• Адреса: https://smartsocial-xi.vercel.app и https://angel-adel.github.io/smartsocial
-• Почта: smartsocials@mail.ru
-
-===== ИСТОРИЯ МИГРАЦИЙ =====
-Replit → PythonAnywhere → Render → GitHub → Vercel
-
-===== ТЕХНОЛОГИИ =====
-Supabase, Vercel, Vanilla JS
-
-===== ПРАВИЛА =====
-• Уважение, без оскорблений
-• Лимит постов: 10 в сутки
-• Ночной режим: 07:00–23:00
-• Безопасность: не передавай пароль
-
-===== ПЛАНЫ =====
-• Исчезающие статусы (24 часа)
-• Голосовые сообщения
-
-===== ТВОИ ПРАВИЛА =====
-1. Отвечай ТОЛЬКО на русском, грамотно.
-2. Отвечай ТОЛЬКО по теме Smart Social.
-3. НЕЛЬЗЯ: личные вопросы, политика, 18+, погода, отвлечённые темы.
-4. Если не знаешь — предложи написать на почту.
-5. Отвечай тёпло, дружелюбно, но строго в рамках проекта.
-`;
-
-            const response = await axios.post(`${OLLAMA_HOST}/api/generate`, {
+    function askOllamaCLI(question) {
+        return new Promise(function(resolve) {
+            var systemPrompt = getSystemPrompt();
+            axios.post(OLLAMA_HOST + '/api/generate', {
                 model: MODEL_NAME,
-                prompt: `${systemPrompt}\n\nВопрос: ${question}\n\nОтвет:`,
+                prompt: systemPrompt + '\n\nВопрос: ' + question + '\n\nОтвет:',
                 stream: false,
                 options: {
                     num_predict: 200,
@@ -316,34 +307,39 @@ Supabase, Vercel, Vanilla JS
                     repeat_penalty: 1.2
                 }
             }, {
-                timeout: TIMEOUT_MS
+                timeout: 120000
+            })
+            .then(function(response) {
+                resolve(response.data.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru');
+            })
+            .catch(function(error) {
+                if (error.code === 'ECONNABORTED') {
+                    resolve('⏱️ Оператор думает слишком долго. Попробуйте позже.');
+                } else {
+                    resolve('⚠️ Сервер временно недоступен. Напишите на smartsocials@mail.ru');
+                }
             });
-
-            return response.data.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru';
-        } catch (error) {
-            if (error.code === 'ECONNABORTED') {
-                return '⏱️ Оператор думает слишком долго. Попробуйте позже.';
-            }
-            return '⚠️ Сервер временно недоступен. Напишите на smartsocials@mail.ru';
-        }
+        });
     }
 
-    async function handleQueryCLI(query) {
-        if (!query || query.trim() === '') return '❓ Напишите вопрос!';
-        const cached = searchKnowledgeBase(query);
-        if (cached) return `📚 ${cached}`;
+    function handleQueryCLI(query) {
+        if (!query || query.trim() === '') return Promise.resolve('❓ Напишите вопрос!');
+        var cached = searchKnowledgeBase(query);
+        if (cached) return Promise.resolve('📚 ' + cached);
         console.log('🤖 Обращаюсь к оператору...');
-        return `🤖 ${await askOllamaCLI(query)}`;
+        return askOllamaCLI(query).then(function(answer) {
+            return '🤖 ' + answer;
+        });
     }
 
-    async function main() {
-        console.log('👼 Ангел-Хранитель Smart Social v6.0 (CLI)');
-        console.log(`📡 Подключён к Ollama: ${OLLAMA_HOST}`);
-        console.log(`🧠 Модель: ${MODEL_NAME}`);
-        console.log(`📚 База знаний: ${knowledgeBase.length} тем`);
+    function main() {
+        console.log('👼 Ангел-Хранитель Smart Social v7.0 (CLI)');
+        console.log('📡 Подключён к Ollama:', OLLAMA_HOST);
+        console.log('🧠 Модель:', MODEL_NAME);
+        console.log('📚 База знаний:', knowledgeBase.length, 'тем');
         console.log('💬 Введи вопрос о Smart Social (или "выход" для выхода):');
 
-        const rl = readline.createInterface({
+        var rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
             prompt: '❓ '
@@ -351,31 +347,35 @@ Supabase, Vercel, Vanilla JS
 
         rl.prompt();
 
-        rl.on('line', async (line) => {
-            const input = line.trim();
-            if (['выход', 'exit', 'quit'].includes(input.toLowerCase())) {
+        rl.on('line', function(line) {
+            var input = line.trim();
+            if (input.toLowerCase() === 'выход' || input.toLowerCase() === 'exit') {
                 console.log('👋 До свидания!');
                 rl.close();
                 return;
             }
 
-            const start = Date.now();
-            const response = await handleQueryCLI(input);
-            const elapsed = ((Date.now() - start) / 1000).toFixed(2);
-
-            console.log(`\n${response}`);
-            console.log(`⏱️ Ответ получен за ${elapsed} сек.\n`);
-            rl.prompt();
+            var start = Date.now();
+            handleQueryCLI(input).then(function(response) {
+                var elapsed = ((Date.now() - start) / 1000).toFixed(2);
+                console.log('\n' + response);
+                console.log('⏱️ Ответ получен за ' + elapsed + ' сек.\n');
+                rl.prompt();
+            });
         });
 
-        rl.on('close', () => process.exit(0));
+        rl.on('close', function() {
+            process.exit(0);
+        });
     }
 
     if (process.argv[2]) {
-        const query = process.argv.slice(2).join(' ');
-        handleQueryCLI(query)
-            .then(answer => console.log(answer))
-            .catch(err => console.error('Ошибка:', err.message));
+        var query = process.argv.slice(2).join(' ');
+        handleQueryCLI(query).then(function(answer) {
+            console.log(answer);
+        }).catch(function(err) {
+            console.error('Ошибка:', err.message);
+        });
     } else {
         main();
     }
