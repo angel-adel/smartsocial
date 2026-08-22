@@ -2,7 +2,7 @@ cat > angel-widget.js << 'EOF'
 // ============================================================
 //  👼 АНГЕЛ-ХРАНИТЕЛЬ SMART SOCIAL
 //  ГИБРИДНАЯ ВЕРСИЯ: CLI + ВИДЖЕТ ДЛЯ САЙТА
-//  Версия: 5.1 (ФИНАЛЬНАЯ)
+//  Версия: 6.0 (ФИНАЛЬНАЯ)
 // ============================================================
 
 // === БАЗА ЗНАНИЙ ===
@@ -40,78 +40,8 @@ function searchKnowledgeBase(query) {
     return null;
 }
 
-async function askOllama(question) {
-    try {
-        const axios = require('axios');
-        const systemPrompt = `
-Ты — Ангел-Хранитель социальной сети Smart Social («Малышка»).
-
-===== О ПРОЕКТЕ =====
-• Название: Smart Social («Малышка»)
-• Дата основания: 9 мая 2026 года
-• Создатель: Торопцев Дмитрий
-• Миссия: уютная, безопасная соцсеть без токсичности и рекламы
-• Адреса: https://smartsocial-xi.vercel.app и https://angel-adel.github.io/smartsocial
-• Почта: smartsocials@mail.ru
-
-===== ИСТОРИЯ МИГРАЦИЙ =====
-Replit → PythonAnywhere → Render → GitHub → Vercel
-
-===== ТЕХНОЛОГИИ =====
-Supabase, Vercel, Vanilla JS
-
-===== ПРАВИЛА =====
-• Уважение, без оскорблений
-• Лимит постов: 10 в сутки
-• Ночной режим: 07:00–23:00
-• Безопасность: не передавай пароль
-
-===== ПЛАНЫ =====
-• Исчезающие статусы (24 часа)
-• Голосовые сообщения
-
-===== ТВОИ ПРАВИЛА =====
-1. Отвечай ТОЛЬКО на русском, грамотно.
-2. Отвечай ТОЛЬКО по теме Smart Social.
-3. НЕЛЬЗЯ: личные вопросы, политика, 18+, погода, отвлечённые темы.
-4. Если не знаешь — предложи написать на почту.
-5. Отвечай тёпло, дружелюбно, но строго в рамках проекта.
-`;
-
-        const response = await axios.post(`${OLLAMA_HOST}/api/generate`, {
-            model: MODEL_NAME,
-            prompt: `${systemPrompt}\n\nВопрос: ${question}\n\nОтвет:`,
-            stream: false,
-            options: {
-                num_predict: 200,
-                temperature: 0.2,
-                top_p: 0.85,
-                repeat_penalty: 1.2
-            }
-        }, {
-            timeout: TIMEOUT_MS
-        });
-
-        let answer = response.data.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru';
-        return answer.trim();
-    } catch (error) {
-        if (error.code === 'ECONNABORTED') {
-            return '⏱️ Оператор думает слишком долго. Попробуйте позже.';
-        }
-        return '⚠️ Сервер временно недоступен. Напишите на smartsocials@mail.ru';
-    }
-}
-
-async function handleQuery(query) {
-    if (!query || query.trim() === '') return '❓ Напишите вопрос!';
-    const cached = searchKnowledgeBase(query);
-    if (cached) return `📚 ${cached}`;
-    console.log('🤖 Обращаюсь к оператору...');
-    return `🤖 ${await askOllama(query)}`;
-}
-
 // ============================================================
-//  ВИДЖЕТ ДЛЯ САЙТА
+//  ЧАСТЬ 1: ВИДЖЕТ ДЛЯ САЙТА (использует fetch)
 // ============================================================
 function getWidgetHTML() {
     return `
@@ -209,6 +139,70 @@ function getWidgetStyles() {
     `;
 }
 
+async function askOllamaBrowser(question) {
+    try {
+        const systemPrompt = `
+Ты — Ангел-Хранитель социальной сети Smart Social («Малышка»).
+
+===== О ПРОЕКТЕ =====
+• Название: Smart Social («Малышка»)
+• Дата основания: 9 мая 2026 года
+• Создатель: Торопцев Дмитрий
+• Миссия: уютная, безопасная соцсеть без токсичности и рекламы
+• Адреса: https://smartsocial-xi.vercel.app и https://angel-adel.github.io/smartsocial
+• Почта: smartsocials@mail.ru
+
+===== ИСТОРИЯ МИГРАЦИЙ =====
+Replit → PythonAnywhere → Render → GitHub → Vercel
+
+===== ТЕХНОЛОГИИ =====
+Supabase, Vercel, Vanilla JS
+
+===== ПРАВИЛА =====
+• Уважение, без оскорблений
+• Лимит постов: 10 в сутки
+• Ночной режим: 07:00–23:00
+• Безопасность: не передавай пароль
+
+===== ПЛАНЫ =====
+• Исчезающие статусы (24 часа)
+• Голосовые сообщения
+
+===== ТВОИ ПРАВИЛА =====
+1. Отвечай ТОЛЬКО на русском, грамотно.
+2. Отвечай ТОЛЬКО по теме Smart Social.
+3. НЕЛЬЗЯ: личные вопросы, политика, 18+, погода, отвлечённые темы.
+4. Если не знаешь — предложи написать на почту.
+5. Отвечай тёпло, дружелюбно, но строго в рамках проекта.
+`;
+
+        const response = await fetch(`${OLLAMA_HOST}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                prompt: `${systemPrompt}\n\nВопрос: ${question}\n\nОтвет:`,
+                stream: false,
+                options: {
+                    num_predict: 200,
+                    temperature: 0.2,
+                    top_p: 0.85,
+                    repeat_penalty: 1.2
+                }
+            }),
+            signal: AbortSignal.timeout(TIMEOUT_MS)
+        });
+
+        const data = await response.json();
+        return data.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru';
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            return '⏱️ Оператор думает слишком долго. Попробуйте позже.';
+        }
+        return '⚠️ Сервер временно недоступен. Напишите на smartsocials@mail.ru';
+    }
+}
+
 function initAngelWidget() {
     const style = document.createElement('style');
     style.textContent = getWidgetStyles();
@@ -252,24 +246,8 @@ function initAngelWidget() {
             return;
         }
 
-        try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 120000);
-
-            const response = await fetch(`http://192.168.0.102:3000/ask?q=${encodeURIComponent(query)}`, {
-                signal: controller.signal
-            });
-            clearTimeout(timeout);
-
-            const data = await response.json();
-            resultsDiv.innerHTML = `<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #4A6CF7;">🤖 ${data.answer || 'Не удалось получить ответ'}</div>`;
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                resultsDiv.innerHTML = `<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #ff6b6b;">⏱️ Оператор думает слишком долго. Попробуйте позже.</div>`;
-            } else {
-                resultsDiv.innerHTML = `<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #ff6b6b;">⚠️ Оператор временно недоступен. Напишите на smartsocials@mail.ru</div>`;
-            }
-        }
+        const answer = await askOllamaBrowser(query);
+        resultsDiv.innerHTML = `<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:3px solid #4A6CF7;">🤖 ${answer}</div>`;
     };
 }
 
@@ -280,16 +258,86 @@ if (typeof window !== 'undefined' && window.document) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAngelWidget);
     } else {
-        initAngelWidget();
+        // Если страница уже загружена — запускаем с задержкой
+        setTimeout(initAngelWidget, 300);
     }
 } else {
     // ============================================================
-    //  ЗАПУСК В TERMUX (CLI)
+    //  ЧАСТЬ 2: CLI ДЛЯ TERMUX (использует axios)
     // ============================================================
+    const axios = require('axios');
     const readline = require('readline');
 
+    async function askOllamaCLI(question) {
+        try {
+            const systemPrompt = `
+Ты — Ангел-Хранитель социальной сети Smart Social («Малышка»).
+
+===== О ПРОЕКТЕ =====
+• Название: Smart Social («Малышка»)
+• Дата основания: 9 мая 2026 года
+• Создатель: Торопцев Дмитрий
+• Миссия: уютная, безопасная соцсеть без токсичности и рекламы
+• Адреса: https://smartsocial-xi.vercel.app и https://angel-adel.github.io/smartsocial
+• Почта: smartsocials@mail.ru
+
+===== ИСТОРИЯ МИГРАЦИЙ =====
+Replit → PythonAnywhere → Render → GitHub → Vercel
+
+===== ТЕХНОЛОГИИ =====
+Supabase, Vercel, Vanilla JS
+
+===== ПРАВИЛА =====
+• Уважение, без оскорблений
+• Лимит постов: 10 в сутки
+• Ночной режим: 07:00–23:00
+• Безопасность: не передавай пароль
+
+===== ПЛАНЫ =====
+• Исчезающие статусы (24 часа)
+• Голосовые сообщения
+
+===== ТВОИ ПРАВИЛА =====
+1. Отвечай ТОЛЬКО на русском, грамотно.
+2. Отвечай ТОЛЬКО по теме Smart Social.
+3. НЕЛЬЗЯ: личные вопросы, политика, 18+, погода, отвлечённые темы.
+4. Если не знаешь — предложи написать на почту.
+5. Отвечай тёпло, дружелюбно, но строго в рамках проекта.
+`;
+
+            const response = await axios.post(`${OLLAMA_HOST}/api/generate`, {
+                model: MODEL_NAME,
+                prompt: `${systemPrompt}\n\nВопрос: ${question}\n\nОтвет:`,
+                stream: false,
+                options: {
+                    num_predict: 200,
+                    temperature: 0.2,
+                    top_p: 0.85,
+                    repeat_penalty: 1.2
+                }
+            }, {
+                timeout: TIMEOUT_MS
+            });
+
+            return response.data.response || '❓ Не нашли ответа? Напишите нам: smartsocials@mail.ru';
+        } catch (error) {
+            if (error.code === 'ECONNABORTED') {
+                return '⏱️ Оператор думает слишком долго. Попробуйте позже.';
+            }
+            return '⚠️ Сервер временно недоступен. Напишите на smartsocials@mail.ru';
+        }
+    }
+
+    async function handleQueryCLI(query) {
+        if (!query || query.trim() === '') return '❓ Напишите вопрос!';
+        const cached = searchKnowledgeBase(query);
+        if (cached) return `📚 ${cached}`;
+        console.log('🤖 Обращаюсь к оператору...');
+        return `🤖 ${await askOllamaCLI(query)}`;
+    }
+
     async function main() {
-        console.log('👼 Ангел-Хранитель Smart Social v5.1 (CLI + Виджет)');
+        console.log('👼 Ангел-Хранитель Smart Social v6.0 (CLI)');
         console.log(`📡 Подключён к Ollama: ${OLLAMA_HOST}`);
         console.log(`🧠 Модель: ${MODEL_NAME}`);
         console.log(`📚 База знаний: ${knowledgeBase.length} тем`);
@@ -312,7 +360,7 @@ if (typeof window !== 'undefined' && window.document) {
             }
 
             const start = Date.now();
-            const response = await handleQuery(input);
+            const response = await handleQueryCLI(input);
             const elapsed = ((Date.now() - start) / 1000).toFixed(2);
 
             console.log(`\n${response}`);
@@ -325,7 +373,7 @@ if (typeof window !== 'undefined' && window.document) {
 
     if (process.argv[2]) {
         const query = process.argv.slice(2).join(' ');
-        handleQuery(query)
+        handleQueryCLI(query)
             .then(answer => console.log(answer))
             .catch(err => console.error('Ошибка:', err.message));
     } else {
