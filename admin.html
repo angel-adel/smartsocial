@@ -159,8 +159,9 @@ let authToken = null;
 let tickets = [];
 let currentFilter = 'all';
 let currentTicketId = null;
-
+  
 async function doLogin() {
+    alert('Функция doLogin вызвана!');
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const errEl = document.getElementById('loginError');
