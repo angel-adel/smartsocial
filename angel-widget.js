@@ -9,7 +9,7 @@
     // === НАСТРОЙКИ SUPABASE (вставь свои!) ===
     const SUPABASE_URL = 'https://wgewycchecbsulyvqfzj.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnZXd5Y2NoZWNic3VseXZxZnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTg1NTYsImV4cCI6MjEwMTQzNDU1Nn0.y80cZy7KiLWKJ1Grh2lkjUdtCGsBos6uC6cNJmRiCTs';
-    const CACHE_DURATION = 0; // 1 час кэша
+    const CACHE_DURATION = 3600000; // 1 час кэша
 
     // === СТИЛИ ===
     const styles = `
