@@ -1,354 +1,47 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Админка Ангела | Smart Social</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
-.login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-.login-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(102,126,234,0.3); border-radius: 16px; padding: 30px; max-width: 350px; width: 100%; text-align: center; }
-.login-box h1 { font-size: 22px; margin-bottom: 8px; color: #667eea; }
-.login-box input { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(102,126,234,0.3); border-radius: 8px; color: #fff; margin: 8px 0; }
-.login-box button { width: 100%; padding: 12px; background: #667eea; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; margin-top: 10px; }
-.login-error { color: #ff6b6b; font-size: 13px; margin-top: 10px; min-height: 18px; }
-.admin { display: none; }
-.admin.active { display: block; }
-.header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(102,126,234,0.2); }
-.header h1 { font-size: 18px; color: #667eea; }
-.container { padding: 15px; max-width: 1200px; margin: 0 auto; }
-.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
-.stat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(102,126,234,0.2); border-radius: 10px; padding: 12px; }
-.stat-card .label { font-size: 11px; color: #888; }
-.stat-card .value { font-size: 24px; font-weight: bold; color: #667eea; }
-.controls { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-.search-input { flex: 1; min-width: 150px; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(102,126,234,0.3); border-radius: 8px; color: #fff; }
-.filter-btn { padding: 8px 12px; background: rgba(102,126,234,0.15); border: 1px solid rgba(102,126,234,0.3); border-radius: 8px; color: #fff; cursor: pointer; font-size: 12px; }
-.filter-btn.active { background: #667eea; }
-.table-wrap { background: rgba(255,255,255,0.03); border: 1px solid rgba(102,126,234,0.2); border-radius: 10px; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 600px; }
-th { background: rgba(102,126,234,0.1); padding: 10px; text-align: left; font-size: 12px; color: #667eea; }
-td { padding: 10px; border-bottom: 1px solid rgba(102,126,234,0.1); font-size: 12px; vertical-align: top; }
-.badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
-.badge-new { background: rgba(255,193,7,0.2); color: #ffc107; }
-.badge-answered { background: rgba(76,175,80,0.2); color: #4caf50; }
-.badge-closed { background: rgba(158,158,158,0.2); color: #9e9e9e; }
-.action-btn { padding: 5px 8px; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; margin: 2px; }
-.btn-reply { background: #667eea; color: #fff; }
-.btn-close { background: rgba(158,158,158,0.3); color: #fff; }
-.btn-kb { background: rgba(118,75,162,0.3); color: #c9a8ff; }
-.btn-reopen { background: rgba(255,193,7,0.3); color: #ffc107; }
-.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
-.modal.active { display: flex; }
-.modal-content { background: #1a1a2e; border: 1px solid rgba(102,126,234,0.3); border-radius: 12px; padding: 20px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
-.modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(102,126,234,0.2); padding-bottom: 10px; }
-.modal-header h2 { color: #667eea; font-size: 16px; }
-.close-modal { background: none; border: none; color: #888; font-size: 20px; cursor: pointer; }
-.question-block { background: rgba(102,126,234,0.1); border-left: 3px solid #667eea; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; }
-.form-group { margin-bottom: 12px; }
-.form-group label { display: block; margin-bottom: 5px; color: #888; font-size: 12px; }
-.form-group textarea { width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(102,126,234,0.3); border-radius: 6px; color: #fff; min-height: 80px; }
-.checkbox-group { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; }
-.modal-btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
-.modal-btn-primary { background: #667eea; color: #fff; }
-.modal-btn-secondary { background: rgba(158,158,158,0.3); color: #fff; }
-.toast { position: fixed; bottom: 20px; right: 20px; background: #4caf50; color: #fff; padding: 10px 15px; border-radius: 8px; font-size: 13px; z-index: 2000; opacity: 0; transition: 0.3s; }
-.toast.show { opacity: 1; }
-.toast.error { background: #ff6b6b; }
-</style>
-</head>
-<body>
-  <!-- ЭКРАН ВХОДА -->
-<div class="login-screen" id="loginScreen">
-    <div class="login-box">
-        <h1>👼 Ангел-Хранитель</h1>
-        <p style="color:#888; font-size:12px; margin-bottom:15px;">Админ-панель Smart Social</p>
-        <input type="email" id="loginEmail" placeholder="Почта" value="smartsocials@mail.ru">
-        <input type="password" id="loginPassword" placeholder="Пароль (любой)">
-        <button onclick="doLogin()">Войти</button>
-      <button onclick="alert('JS работает!')">ТЕСТ JS</button>
-        <div class="login-error" id="loginError"></div>
-    </div>
-</div>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="background:#1a1a2e; color:#fff; padding:20px; font-family:sans-serif;">
+    <h2>Тест Supabase</h2>
+    <button onclick="testLogin()" style="padding:15px; font-size:16px;">Проверить вход</button>
+    <div id="res" style="margin-top:20px; color:#4caf50;"></div>
 
-<!-- АДМИНКА (скрыта до входа) -->
-<div class="admin" id="adminApp">
-    <div class="header">
-        <h1>👼 Управление</h1>
-        <button onclick="doLogout()" style="background:rgba(255,107,107,0.2); color:#ff6b6b; border:1px solid rgba(255,107,107,0.4); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;">Выйти</button>
-    </div>
+    <script>
+        // ВСТАВЬ СВОИ ДАННЫЕ НИЖЕ:
+        const URL = 'https://wgewycchecbsulyvqfzj.supabase.co';
+        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnZXd5Y2NoZWNic3VseXZxZnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTg1NTYsImV4cCI6MjEwMTQzNDU1Nn0.y80cZy7KiLWKJ1Grh2lkjUdtCGsBos6uC6cNJmRiCTs';
 
-    <div class="container">
-        <!-- Статистика -->
-        <div class="stats">
-            <div class="stat-card"><div class="label">Новые</div><div class="value" id="statNew">0</div></div>
-            <div class="stat-card"><div class="label">Отвечено</div><div class="value" id="statAnswered">0</div></div>
-            <div class="stat-card"><div class="label">Закрыто</div><div class="value" id="statClosed">0</div></div>
-            <div class="stat-card"><div class="label">Всего</div><div class="value" id="statTotal">0</div></div>
-        </div>
-
-        <!-- Поиск и фильтры -->
-        <div class="controls">
-            <input type="text" class="search-input" id="searchInput" placeholder=" Поиск..." oninput="renderTickets()">
-            <button class="filter-btn active" onclick="setFilter('all', this)">Все</button>
-            <button class="filter-btn" onclick="setFilter('new', this)">Новые</button>
-            <button class="filter-btn" onclick="setFilter('answered', this)">Отвеченные</button>
-            <button class="filter-btn" onclick="setFilter('closed', this)">Закрытые</button>
-        </div>
-
-        <!-- Таблица тикетов -->
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th><th>Дата</th><th>Вопрос</th><th>Email</th><th>Статус</th><th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody id="ticketsBody">
-                    <tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">Загрузка...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно ответа -->
-<div class="modal" id="replyModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Ответ на тикет</h2>
-            <button class="close-modal" onclick="closeModal()">✕</button>
-        </div>
-        <div class="question-block">
-            <strong style="color:#667eea; display:block; margin-bottom:5px; font-size:11px;">Вопрос пользователя:</strong>
-            <span id="modalQuestion"></span>
-        </div>
-        <div class="form-group">
-            <label>Ваш ответ:</label>
-            <textarea id="modalAnswer" placeholder="Введите ответ..."></textarea>
-        </div>
-        <div class="form-group">
-            <label class="checkbox-group">
-                <input type="checkbox" id="addToKB" checked>
-                Добавить в базу знаний (синхронизируется с виджетом)
-            </label>
-        </div>
-        <div class="modal-actions">
-            <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Отмена</button>
-            <button class="modal-btn modal-btn-primary" onclick="sendReply()">Отправить</button>
-        </div>
-    </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-// ============================================================
-//  НАСТРОЙКИ SUPABASE — ВСТАВЬ СВОИ ДАННЫЕ!
-// ============================================================
-const SUPABASE_URL = 'https://wgewycchecbsulyvqfzj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnZXd5Y2NoZWNic3VseXZxZnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTg1NTYsImV4cCI6MjEwMTQzNDU1Nn0.y80cZy7KiLWKJ1Grh2lkjUdtCGsBos6uC6cNJmRiCTs';
-const ADMIN_EMAIL = 'admin@smartsocial.local';
-const ADMIN_PASSWORD = 'admin123';
-  // ============================================================
-//  СОСТОЯНИЕ И АВТОРИЗАЦИЯ
-// ============================================================
-let authToken = null;
-let tickets = [];
-let currentFilter = 'all';
-let currentTicketId = null;
-  
-async function doLogin() {
-    alert('Функция doLogin вызвана!');
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const errEl = document.getElementById('loginError');
-    errEl.textContent = '';
-
-    if (email !== 'smartsocials@mail.ru') {
-        errEl.textContent = 'Используйте почту smartsocials@mail.ru';
-        return;
-    }
-    if (!password) { errEl.textContent = 'Введите пароль'; return; }
-
-    try {
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-            method: 'POST',
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.access_token) {
-            errEl.textContent = 'Ошибка авторизации. Проверьте настройки Supabase.';
-            return;
+        async function testLogin() {
+            alert('Начинаем проверку!');
+            const resDiv = document.getElementById('res');
+            resDiv.innerText = 'Загрузка...';
+            
+            try {
+                const res = await fetch(URL + '/auth/v1/token?grant_type=password', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@smartsocial.local',
+                        password: 'admin123'
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.access_token) {
+                    resDiv.innerText = '✅ УСПЕХ! Токен получен: ' + data.access_token.substring(0, 20) + '...';
+                    resDiv.style.color = '#4caf50';
+                } else {
+                    resDiv.innerText = '❌ ОШИБКА: ' + JSON.stringify(data);
+                    resDiv.style.color = '#ff6b6b';
+                }
+            } catch (e) {
+                resDiv.innerText = '❌ ОШИБКА СЕТИ: ' + e.message;
+                resDiv.style.color = '#ff6b6b';
+            }
         }
-        authToken = data.access_token;
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('adminApp').classList.add('active');
-        loadData();
-    } catch (e) {
-        errEl.textContent = 'Ошибка сети: ' + e.message;
-    }
-}
-
-function doLogout() {
-    authToken = null;
-    document.getElementById('adminApp').classList.remove('active');
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('loginPassword').value = '';
-}
-
-// ============================================================
-//  ЗАГРУЗКА И ОТРИСОВКА
-// ============================================================async function loadData() {
-    await loadTickets();
-    updateStats();
-}
-
-async function loadTickets() {
-    const tbody = document.getElementById('ticketsBody');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Загрузка...</td></tr>';
-    try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/angel_tickets?order=created_at.desc`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${authToken}` }
-        });
-        tickets = await res.json();
-        renderTickets();
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#ff6b6b;">Ошибка: ${e.message}</td></tr>`;
-    }
-}
-
-function renderTickets() {
-    const tbody = document.getElementById('ticketsBody');
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    let filtered = tickets;
-    if (currentFilter !== 'all') filtered = filtered.filter(t => t.status === currentFilter);
-    if (search) filtered = filtered.filter(t => (t.user_question||'').toLowerCase().includes(search) || (t.user_email||'').toLowerCase().includes(search));
-
-    if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Тикетов не найдено</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = filtered.map(t => {
-        const date = t.created_at ? new Date(t.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-';
-        const q = (t.user_question||'').substring(0,60) + ((t.user_question||'').length>60?'...':'');
-        const badgeClass = t.status==='new'?'badge-new':t.status==='answered'?'badge-answered':'badge-closed';
-        const statusText = t.status==='new'?'Новый':t.status==='answered'?'Отвечен':'Закрыт';
-        let actions = '';
-        if (t.status==='new') actions += `<button class="action-btn btn-reply" onclick="openReply('${t.id}')">✉️ Ответить</button>`;
-        else if (t.status==='answered') {
-            actions += `<button class="action-btn btn-kb" onclick="addToKBFromTicket('${t.id}')">📚 В БЗ</button>`;
-            actions += `<button class="action-btn btn-close" onclick="closeTicket('${t.id}')">Закрыть</button>`;
-        } else {
-            actions += `<button class="action-btn btn-reopen" onclick="reopenTicket('${t.id}')">Открыть</button>`;
-        }
-        return `<tr><td>#${(t.id||'').substring(0,6)}</td><td>${date}</td><td title="${(t.user_question||'').replace(/"/g,'&quot;')}">${q}</td><td>${t.user_email||'-'}</td><td><span class="badge ${badgeClass}">${statusText}</span></td><td>${actions}</td></tr>`;
-    }).join('');
-}
-
-function setFilter(f, btn) {
-    currentFilter = f;    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderTickets();
-}
-
-function updateStats() {
-    document.getElementById('statNew').textContent = tickets.filter(t=>t.status==='new').length;
-    document.getElementById('statAnswered').textContent = tickets.filter(t=>t.status==='answered').length;
-    document.getElementById('statClosed').textContent = tickets.filter(t=>t.status==='closed').length;
-    document.getElementById('statTotal').textContent = tickets.length;
-}
-
-// ============================================================
-//  ДЕЙСТВИЯ С ТИКЕТАМИ
-// ============================================================
-function openReply(id) {
-    const t = tickets.find(x=>x.id===id);
-    if (!t) return;
-    currentTicketId = id;
-    document.getElementById('modalQuestion').textContent = t.user_question;
-    document.getElementById('modalAnswer').value = '';
-    document.getElementById('addToKB').checked = true;
-    document.getElementById('replyModal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('replyModal').classList.remove('active');
-    currentTicketId = null;
-}
-
-async function sendReply() {
-    const answer = document.getElementById('modalAnswer').value.trim();
-    const toKB = document.getElementById('addToKB').checked;
-    if (!answer) { toast('Введите ответ', true); return; }
-    const ticket = tickets.find(t=>t.id===currentTicketId);
-    if (!ticket) return;
-
-    await updateTicket(currentTicketId, { admin_answer: answer, status: 'answered', answered_at: new Date().toISOString() });
-    if (toKB) await addAnswerToKB(ticket.user_question, answer);
-
-    closeModal();
-    await loadData();
-    toast('Ответ отправлен' + (toKB ? ' и добавлен в базу знаний' : ''));
-}
-
-async function closeTicket(id) {
-    if (!confirm('Закрыть тикет?')) return;
-    await updateTicket(id, { status: 'closed', closed_at: new Date().toISOString() });
-    await loadData();
-    toast('Тикет закрыт');}
-
-async function reopenTicket(id) {
-    await updateTicket(id, { status: 'new', closed_at: null });
-    await loadData();
-    toast('Тикет открыт заново');
-}
-
-async function addToKBFromTicket(id) {
-    const t = tickets.find(x=>x.id===id);
-    if (!t || !t.admin_answer) { toast('Сначала ответьте на тикет', true); return; }
-    await addAnswerToKB(t.user_question, t.admin_answer);
-    toast('Добавлено в базу знаний');
-}
-
-// ============================================================
-//  РАБОТА С SUPABASE
-// ============================================================
-async function updateTicket(id, data) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/angel_tickets?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Ошибка обновления тикета');
-}
-
-async function addAnswerToKB(question, answer) {
-    const stopWords = ['как','что','где','когда','почему','зачем','можно','ли','нужно','и','в','на','с','по','для','от','до','из','за'];
-    const keywords = question.toLowerCase().replace(/[?!.]/g,'').split(/\s+/).filter(w=>w.length>2 && !stopWords.includes(w));
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/knowledge_base`, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ keywords, answer, is_active: true })
-    });
-    if (!res.ok) throw new Error('Ошибка добавления в БЗ');
-}
-
-// ============================================================
-//  УТИЛИТЫ
-// ============================================================
-function toast(msg, isError=false) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show' + (isError ? ' error' : '');
-    setTimeout(() => t.className = 'toast', 2500);
-}
-
-document.getElementById('loginPassword').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
-</script>
+    </script>
 </body>
 </html>
