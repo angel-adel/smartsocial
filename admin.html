@@ -37,6 +37,7 @@ td{padding:8px;border-bottom:1px solid rgba(102,126,234,0.1);font-size:11px;vert
 .btn-reply{background:#667eea;color:#fff}
 .btn-close{background:rgba(158,158,158,0.3);color:#fff}
 .btn-kb{background:rgba(118,75,162,0.3);color:#c9a8ff}
+.btn-del{background:rgba(255,107,107,0.2);color:#ff6b6b;border:1px solid rgba(255,107,107,0.3)}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;justify-content:center;align-items:center;padding:20px}
 .modal.active{display:flex}
 .modal-content{background:#1a1a2e;border:1px solid rgba(102,126,234,0.3);border-radius:10px;padding:18px;max-width:450px;width:100%;max-height:90vh;overflow-y:auto}
@@ -47,7 +48,8 @@ td{padding:8px;border-bottom:1px solid rgba(102,126,234,0.1);font-size:11px;vert
 .form-group{margin-bottom:10px}
 .form-group label{display:block;margin-bottom:5px;color:#888;font-size:11px}
 .form-group textarea{width:100%;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(102,126,234,0.3);border-radius:6px;color:#fff;min-height:70px}
-.checkbox{display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:12px}.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.checkbox{display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:12px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
 .modal-btn{padding:7px 12px;border:none;border-radius:5px;cursor:pointer;font-size:11px}
 .modal-btn-primary{background:#667eea;color:#fff}
 .modal-btn-secondary{background:rgba(158,158,158,0.3);color:#fff}
@@ -95,8 +97,9 @@ td{padding:8px;border-bottom:1px solid rgba(102,126,234,0.1);font-size:11px;vert
 <div class="modal-content">
 <div class="modal-header">
 <h3>Ответ</h3>
-<button class="close" onclick="closeModal()"></button>
-</div><div class="q-block"><strong style="color:#667eea;display:block;margin-bottom:5px;font-size:10px">Вопрос:</strong><span id="modalQuestion"></span></div>
+<button class="close" onclick="closeModal()">×</button>
+</div>
+<div class="q-block"><strong style="color:#667eea;display:block;margin-bottom:5px;font-size:10px">Вопрос:</strong><span id="modalQuestion"></span></div>
 <div class="form-group">
 <label>Ответ:</label>
 <textarea id="modalAnswer" placeholder="Введите ответ..."></textarea>
@@ -182,6 +185,7 @@ let actions='';
 if(t.status==='new')actions+='<button class="btn btn-reply" onclick="openReply(\''+t.id+'\')">✉️ Ответить</button>';
 else if(t.status==='answered'){actions+='<button class="btn btn-kb" onclick="addToKBFromTicket(\''+t.id+'\')">📚 В БЗ</button>';actions+='<button class="btn btn-close" onclick="closeTicket(\''+t.id+'\')">Закрыть</button>';}
 else{actions+='<button class="btn btn-reply" onclick="reopenTicket(\''+t.id+'\')">Открыть</button>';}
+actions+='<button class="btn btn-del" onclick="deleteTicket(\''+t.id+'\')">🗑</button>';
 return '<tr><td>#'+(t.id||'').substring(0,6)+'</td><td>'+date+'</td><td title="'+(t.user_question||'').replace(/"/g,'"')+'">'+q+'</td><td>'+(t.user_email||'-')+'</td><td><span class="badge '+badgeClass+'">'+statusText+'</span></td><td>'+actions+'</td></tr>';
 }).join('');
 }
@@ -210,7 +214,8 @@ document.getElementById('addToKB').checked=true;
 document.getElementById('replyModal').classList.add('active');
 }
 
-function closeModal(){document.getElementById('replyModal').classList.remove('active');
+function closeModal(){
+document.getElementById('replyModal').classList.remove('active');
 currentTicketId=null;
 }
 
@@ -223,9 +228,30 @@ if(!ticket)return;
 try{
 await updateTicket(currentTicketId,{admin_answer:answer,status:'answered',answered_at:new Date().toISOString()});
 if(toKB)await addAnswerToKB(ticket.user_question,answer);
+
+let mailSent=false;
+if(ticket.user_email && !ticket.user_email.endsWith('@smartsocial.local')){
+try{
+const mailRes=await fetch(SUPABASE_URL+'/functions/v1/send-email',{
+method:'POST',
+headers:{
+'apikey':SUPABASE_ANON_KEY,
+'Authorization':'Bearer '+authToken,
+'Content-Type':'application/json'
+},
+body:JSON.stringify({
+to:ticket.user_email,
+subject:'Ответ поддержки SmartSocial',
+body:answer
+})
+});
+if(mailRes.ok)mailSent=true;
+}catch(e){console.warn('Письмо не ушло:',e);}
+}
+
 closeModal();
 await loadData();
-toast('Ответ отправлен'+(toKB?' и добавлен в базу знаний':''));
+toast('Ответ отправлен'+(toKB?' и добавлен в БЗ':'')+(mailSent?' + письмо отправлено':''));
 }catch(e){toast('Ошибка: '+e.message,true);}
 }
 
@@ -235,6 +261,19 @@ try{
 await updateTicket(id,{status:'closed',closed_at:new Date().toISOString()});
 await loadData();
 toast('Тикет закрыт');
+}catch(e){toast('Ошибка: '+e.message,true);}
+}
+
+async function deleteTicket(id){
+if(!confirm('Удалить тикет навсегда? Это действие необратимо.'))return;
+try{
+const res=await fetch(SUPABASE_URL+'/rest/v1/angel_tickets?id=eq.'+id,{
+method:'DELETE',
+headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+authToken}
+});
+if(!res.ok)throw new Error('Ошибка удаления');
+await loadData();
+toast('Тикет удалён');
 }catch(e){toast('Ошибка: '+e.message,true);}
 }
 
