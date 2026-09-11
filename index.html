@@ -30,6 +30,8 @@
     <script src="angel-widget.js"></script>
     <!-- 3. Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 4. Turnstile (капча) — ДО логики авторизации -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <!-- 4. Логика авторизации -->
     <script src="login.js"></script>
 
@@ -319,37 +321,45 @@
         <label for="password">Пароль</label>
         <input type="password" id="password" placeholder="Минимум 4 символа" required />
     </div>
-</form>
 
-                <div class="form-group">
-                    <label class="gender-label">Пол</label>
-                    <div class="gender-selection">
-                        <div class="gender-option">
-                            <input type="radio" id="male" name="gender" value="male" checked />
-                            <label for="male">Мужской</label>
-                        </div>
-                        <div class="gender-option">
-                            <input type="radio" id="female" name="gender" value="female" />
-                            <label for="female">Женский</label>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="submit-btn" id="submit-btn">Войти / Зарегистрироваться</button>
-            </form>
-
-            <div class="console-container hidden" id="console">
-                <div class="console-header">💻 Системный журнал</div>
-                <div class="console-output" id="console-output"></div>
+    <div class="form-group">
+        <label class="gender-label">Пол</label>
+        <div class="gender-selection">
+            <div class="gender-option">
+                <input type="radio" id="male" name="gender" value="male" checked />
+                <label for="male">Мужской</label>
             </div>
-
-            <div class="footer-link">
-                <a href="mailto:smartsocials@mail.ru?subject=Помощь по сайту&body=Возникли проблемы с сайтом..." class="footer-link">
-                    📧 Забыли пароль?                </a>
+            <div class="gender-option">
+                <input type="radio" id="female" name="gender" value="female" />
+                <label for="female">Женский</label>
             </div>
-            <a href="about.html" class="about-link">← О сайте</a>
         </div>
     </div>
+
+    <!-- 👇 КАПЧА — ПОСЛЕ ВСЕХ ПОЛЕЙ, ПЕРЕД КНОПКОЙ 👇 -->
+    <div class="form-group">
+        <div class="cf-turnstile" 
+             data-sitekey="0x4AAAAAAEwWVGOwSSIL3cBB"
+             data-theme="dark"
+             data-callback="onTurnstileSuccess">
+        </div>
+    </div>
+
+    <!-- 👇 КНОПКА — ВНУТРИ ФОРМЫ 👇 -->
+    <button type="submit" class="submit-btn" id="submit-btn">Войти / Зарегистрироваться</button>
+</form>
+
+<div class="console-container hidden" id="console">
+    <div class="console-header">💻 Системный журнал</div>
+    <div class="console-output" id="console-output"></div>
+</div>
+
+<div class="footer-link">
+    <a href="mailto:smartsocials@mail.ru?subject=Помощь по сайту&body=Возникли проблемы с сайтом..." class="footer-link">
+        📧 Забыли пароль?
+    </a>
+</div>
+<a href="about.html" class="about-link">← О сайте</a>
 
     <!-- Инициализация темы и языка -->
     <script>
