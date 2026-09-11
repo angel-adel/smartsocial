@@ -45,10 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
             let gender = 'male';
             genderRadios.forEach(el => { if (el.checked) gender = el.value; });
 
-            if (!username || password.length < 4) {
-                log('Имя не может быть пустым, пароль минимум 4 символа.', 'error');
-                return;
-            }
+            // Проверка: только латиница, цифры, _
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+          log('❌ Имя должно содержать только латинские буквы (A-Z), цифры и _ (без пробелов и кириллицы)', 'error');
+    return;
+}
+        // Проверка длины
+    if (username.length < 2) {
+          log('❌ Имя должно быть минимум 2 символа', 'error');
+    return;
+}
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'Обработка...';
@@ -124,6 +130,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 log('❌ Подробности: ' + errorMsg, 'error');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Войти / Зарегистрироваться';
+            }
+        });
+    }
+        // ===== 6. ЖИВАЯ ВАЛИДАЦИЯ ИМЕНИ =====
+    if (usernameInput) {
+        usernameInput.addEventListener('input', function(e) {
+            const hasCyrillic = /[а-яА-ЯёЁ]/.test(e.target.value);
+            if (hasCyrillic) {
+                e.target.style.borderColor = '#ff6b6b';
+                e.target.style.boxShadow = '0 0 0 2px rgba(255,107,107,0.2)';
+            } else {
+                e.target.style.borderColor = '';
+                e.target.style.boxShadow = '';
             }
         });
     }
