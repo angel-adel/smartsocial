@@ -336,6 +336,18 @@
         </div>
     </div>
 
+    <!-- Honeypot — скрытые поля для ботов -->
+<div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+    <label for="website">Website</label>
+    <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+    
+    <label for="email_confirm">Email</label>
+    <input type="email" id="email_confirm" name="email_confirm" tabindex="-1" autocomplete="off">
+    
+    <label for="full_name">Full Name</label>
+    <input type="text" id="full_name" name="full_name" tabindex="-1" autocomplete="off">
+</div>
+
     <!-- 👇 КАПЧА — ПОСЛЕ ВСЕХ ПОЛЕЙ, ПЕРЕД КНОПКОЙ 👇 -->
     <div class="form-group">
         <div class="cf-turnstile" 

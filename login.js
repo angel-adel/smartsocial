@@ -14,7 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const consoleBox = document.getElementById('console');
     const consoleOutput = document.getElementById('console-output');
 
-        // ===== КАПЧА =====
+    // ===== ТАЙМИНГ =====
+    const formLoadedAt = Date.now();
+
+    // ===== КАПЧА =====
     let turnstileToken = null;
     window.onTurnstileSuccess = function(token) {
         turnstileToken = token;
@@ -52,16 +55,33 @@ document.addEventListener('DOMContentLoaded', () => {
             let gender = 'male';
             genderRadios.forEach(el => { if (el.checked) gender = el.value; });
 
-            // Проверка: только латиница, цифры, _
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-          log('❌ Имя должно содержать только латинские буквы (A-Z), цифры и _ (без пробелов и кириллицы)', 'error');
-    return;
-}
-        // Проверка длины
-    if (username.length < 2) {
-          log('❌ Имя должно быть минимум 2 символа', 'error');
-    return;
-}
+            // ===== HONEYPOT =====
+            const honeypotFields = ['website', 'email_confirm', 'full_name'];
+            for (const field of honeypotFields) {
+                if (document.getElementById(field)?.value) {
+                    log('❌ Обнаружена автоматическая активность. Регистрация отклонена.', 'error');
+                    return;
+                }
+            }
+
+            // ===== ТАЙМИНГ =====
+            if (Date.now() - formLoadedAt < 2000) {
+                log('❌ Слишком быстро. Регистрация отклонена.', 'error');
+                return;
+            }
+
+            // ===== ПРОВЕРКА ИМЕНИ: только латиница, цифры, _ =====
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                log('❌ Имя должно содержать только латинские буквы (A-Z), цифры и _ (без пробелов и кириллицы)', 'error');
+                return;
+            }
+
+            // ===== ПРОВЕРКА ДЛИНЫ =====
+            if (username.length < 2) {
+                log('❌ Имя должно быть минимум 2 символа', 'error');
+                return;
+            }
+
             // ===== ПРОВЕРКА КАПЧИ =====
             if (!turnstileToken) {
                 log('❌ Подтвердите, что вы не робот (пройдите капчу)', 'error');
@@ -78,9 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: JSON.stringify({ token: turnstileToken })
                 });
-                
+
                 const captchaResult = await captchaRes.json();
-                
+
                 if (!captchaResult.success) {
                     log('❌ Капча не пройдена. Попробуйте ещё раз', 'error');
                     if (typeof turnstile !== 'undefined') {
@@ -89,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     turnstileToken = null;
                     return;
                 }
-                
+
                 log('✅ Капча пройдена', 'success');
             } catch (err) {
                 log('❌ Ошибка проверки капчи: ' + err.message, 'error');
@@ -102,10 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
             log('🔒 Инициализация протокола безопасности...');
 
             try {
-                // === ИСПРАВЛЕНИЕ: Убираем пробелы и спецсимволы, меняем домен ===
                 const safeUsername = username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-                const fakeEmail = `${safeUsername}@smartsocial.app`; 
-                
+                const fakeEmail = `${safeUsername}@smartsocial.app`;
+
                 log(`🔍 Генерация ID для [${safeUsername}]...`);
                 await new Promise(r => setTimeout(r, 300));
 
@@ -173,7 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-        // ===== 6. ЖИВАЯ ВАЛИДАЦИЯ ИМЕНИ =====
+
+    // ===== 6. ЖИВАЯ ВАЛИДАЦИЯ ИМЕНИ =====
     if (usernameInput) {
         usernameInput.addEventListener('input', function(e) {
             const hasCyrillic = /[а-яА-ЯёЁ]/.test(e.target.value);
