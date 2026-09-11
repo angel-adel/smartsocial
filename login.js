@@ -14,6 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const consoleBox = document.getElementById('console');
     const consoleOutput = document.getElementById('console-output');
 
+        // ===== КАПЧА =====
+    let turnstileToken = null;
+    window.onTurnstileSuccess = function(token) {
+        turnstileToken = token;
+        console.log('✅ Капча пройдена, токен получен');
+    };
+
     // ===== 3. ЛОГИРОВАНИЕ =====
     function log(message, type = 'info') {
         if (!consoleBox || !consoleOutput) return;
@@ -55,6 +62,39 @@ document.addEventListener('DOMContentLoaded', () => {
           log('❌ Имя должно быть минимум 2 символа', 'error');
     return;
 }
+            // ===== ПРОВЕРКА КАПЧИ =====
+            if (!turnstileToken) {
+                log('❌ Подтвердите, что вы не робот (пройдите капчу)', 'error');
+                return;
+            }
+
+            log('🛡️ Проверка капчи...');
+            try {
+                const captchaRes = await fetch(`${SUPABASE_URL}/functions/v1/verify-turnstile`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token: turnstileToken })
+                });
+                
+                const captchaResult = await captchaRes.json();
+                
+                if (!captchaResult.success) {
+                    log('❌ Капча не пройдена. Попробуйте ещё раз', 'error');
+                    if (typeof turnstile !== 'undefined') {
+                        turnstile.reset();
+                    }
+                    turnstileToken = null;
+                    return;
+                }
+                
+                log('✅ Капча пройдена', 'success');
+            } catch (err) {
+                log('❌ Ошибка проверки капчи: ' + err.message, 'error');
+                return;
+            }
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'Обработка...';
