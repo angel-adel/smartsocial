@@ -1,17 +1,24 @@
 // ============================================================
 //  👼 АНГЕЛ-ХРАНИТЕЛЬ SMART SOCIAL
-//  Версия: 10.0 (БОЕВАЯ — Supabase + Тикеты + Живая БЗ)
+//  Версия: 10.1 (Живая БЗ + кэш 3 минуты + тикеты)
 // ============================================================
 
 (function() {
     'use strict';
 
-    // === НАСТРОЙКИ SUPABASE (вставь свои!) ===
+    // ============================================================
+    // НАСТРОЙКИ
+    // ============================================================
     const SUPABASE_URL = 'https://wgewycchecbsulyvqfzj.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnZXd5Y2NoZWNic3VseXZxZnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTg1NTYsImV4cCI6MjEwMTQzNDU1Nn0.y80cZy7KiLWKJ1Grh2lkjUdtCGsBos6uC6cNJmRiCTs';
-    const CACHE_DURATION = 3600000; // 1 час кэша
 
-    // === СТИЛИ ===
+    const CACHE_KEY = 'angel_kb_cache';
+    const CACHE_TIME_KEY = 'angel_kb_cache_time';
+    const UPDATE_INTERVAL = 3 * 60 * 1000; // 3 минуты — как часто обновлять БЗ
+
+    // ============================================================
+    // СТИЛИ
+    // ============================================================
     const styles = `
         @keyframes angelBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         @keyframes angelFadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
@@ -39,7 +46,9 @@
         @media(max-width:480px) { .angel-window { width:calc(100vw - 40px); right:-10px; } }
     `;
 
-    // === HTML ВИДЖЕТА ===
+    // ============================================================
+    // HTML ВИДЖЕТА
+    // ============================================================
     const html = `
         <div class="angel-widget" id="angelWidget">
             <div class="angel-window" id="angelWindow">
@@ -61,43 +70,58 @@
             <div class="angel-bubble" id="angelBubble" onclick="angelToggle()">👼</div>
         </div>
     `;
-    // === СОСТОЯНИЕ И КЭШИРОВАНИЕ ===
+
+    // ============================================================
+    // СОСТОЯНИЕ
+    // ============================================================
     let knowledgeBase = [];
     let isKBLoaded = false;
 
-    // Загрузка базы знаний из Supabase с кэшем
+    // ============================================================
+    // ЗАГРУЗКА БАЗЫ ЗНАНИЙ (кэш 3 минуты + фоновое обновление)
+    // ============================================================
     async function loadKnowledgeBase() {
-        const cacheKey = 'angel_kb_cache';
-        const cacheTimeKey = 'angel_kb_cache_time';
-        const cachedData = localStorage.getItem(cacheKey);
-        const cachedTime = localStorage.getItem(cacheTimeKey);
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
 
-        // Если кэш есть и ему меньше часа — используем его (мгновенно!)
-        if (cachedData && cachedTime && (Date.now() - parseInt(cachedTime)) < CACHE_DURATION) {
-            knowledgeBase = JSON.parse(cachedData);
-            isKBLoaded = true;
-            return;
+        // 1. Сразу показываем кэш (мгновенно)
+        if (cachedData) {
+            try {
+                knowledgeBase = JSON.parse(cachedData);
+                isKBLoaded = true;
+            } catch (e) {
+                console.warn('Ошибка парсинга кэша:', e);
+            }
         }
 
-        // Иначе тянем свежую базу из Supabase
+        // 2. Проверяем, надо ли обновлять
+        const cacheAge = cachedTime ? Date.now() - parseInt(cachedTime) : Infinity;
+        if (cacheAge < UPDATE_INTERVAL && cachedData) {
+            return; // кэш свежий — не трогаем
+        }
+
+        // 3. Загружаем свежие данные в фоне
         try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/knowledge_base?is_active=eq.true&select=*`, {
-                headers: { 'apikey': SUPABASE_ANON_KEY }
-            });
+            const res = await fetch(
+                `${SUPABASE_URL}/rest/v1/knowledge_base?is_active=eq.true&select=*`,
+                { headers: { 'apikey': SUPABASE_ANON_KEY } }
+            );
             if (res.ok) {
-                knowledgeBase = await res.json();
-                // Сохраняем в кэш
-                localStorage.setItem(cacheKey, JSON.stringify(knowledgeBase));
-                localStorage.setItem(cacheTimeKey, Date.now().toString());
+                const freshData = await res.json();
+                knowledgeBase = freshData;
+                localStorage.setItem(CACHE_KEY, JSON.stringify(freshData));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
             }
         } catch (e) {
             console.error('Ошибка загрузки БЗ:', e);
-            if (cachedData) knowledgeBase = JSON.parse(cachedData); // fallback на старый кэш
         }
+
         isKBLoaded = true;
     }
 
-    // === УМНЫЙ ПОИСК ПО БАЗЕ ЗНАНИЙ ===
+    // ============================================================
+    // УМНЫЙ ПОИСК ПО БАЗЕ ЗНАНИЙ
+    // ============================================================
     function searchKnowledge(query) {
         const lowerQuery = query.toLowerCase().trim();
         if (!lowerQuery) return null;
@@ -108,6 +132,7 @@
         for (let i = 0; i < knowledgeBase.length; i++) {
             const item = knowledgeBase[i];
             let matchCount = 0;
+
             // Проверяем ключевые слова (они приходят массивом из Supabase)
             if (item.keywords && Array.isArray(item.keywords)) {
                 for (let j = 0; j < item.keywords.length; j++) {
@@ -116,14 +141,19 @@
                     }
                 }
             }
+
             if (matchCount > maxMatches) {
                 maxMatches = matchCount;
                 bestMatch = item.answer;
             }
         }
+
         return maxMatches > 0 ? bestMatch : null;
-            }
-   // === UI И ОБРАБОТКА ВОПРОСОВ ===
+    }
+
+    // ============================================================
+    // UI
+    // ============================================================
     window.angelToggle = function() {
         const win = document.getElementById('angelWindow');
         const bubble = document.getElementById('angelBubble');
@@ -147,12 +177,20 @@
         angelAsk(q);
     };
 
+    // ============================================================
+    // ОБРАБОТКА ВОПРОСОВ
+    // ============================================================
     window.angelAsk = async function(question) {
         if (!question.trim()) return;
-        const resDiv = document.getElementById('angelResults');
-        resDiv.innerHTML = '<div style="text-align:center;padding:15px;"><div style="font-size:20px;animation:angelBounce 1s infinite">👼</div><div style="margin-top:8px;color:#666;font-size:13px">Ищу ответ...</div></div>';
 
-        // Ждем загрузку БЗ, если еще не готова
+        const resDiv = document.getElementById('angelResults');
+        resDiv.innerHTML = `
+            <div style="text-align:center;padding:15px;">
+                <div style="font-size:20px;animation:angelBounce 1s infinite">👼</div>
+                <div style="margin-top:8px;color:#666;font-size:13px">Ищу ответ...</div>
+            </div>`;
+
+        // Ждём загрузку БЗ, если ещё не готова
         if (!isKBLoaded) await loadKnowledgeBase();
 
         const answer = searchKnowledge(question);
@@ -173,6 +211,9 @@
         }, 300);
     };
 
+    // ============================================================
+    // СОЗДАНИЕ ТИКЕТА
+    // ============================================================
     window.angelCreateTicket = async function(question) {
         const email = document.getElementById('ticketEmail').value.trim();
         const resDiv = document.getElementById('angelResults');
@@ -181,9 +222,17 @@
         try {
             const res = await fetch(`${SUPABASE_URL}/rest/v1/angel_tickets`, {
                 method: 'POST',
-                headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_question: question, user_email: email || null, status: 'new' })
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_question: question,
+                    user_email: email || null,
+                    status: 'new'
+                })
             });
+
             if (res.ok) {
                 resDiv.innerHTML = '<div class="angel-success">✅ Вопрос отправлен! Создатель ответит в ближайшее время.</div>';
             } else {
@@ -194,13 +243,18 @@
         }
     };
 
-    // === ИНИЦИАЛИЗАЦИЯ ===
+    // ============================================================
+    // ИНИЦИАЛИЗАЦИЯ
+    // ============================================================
     function init() {
         const style = document.createElement('style');
         style.textContent = styles;
         document.head.appendChild(style);
+
         document.body.insertAdjacentHTML('beforeend', html);
-        loadKnowledgeBase(); // Загружаем БЗ в фоне
+
+        // Загружаем БЗ в фоне
+        loadKnowledgeBase();
     }
 
     if (document.readyState === 'loading') {
@@ -209,4 +263,4 @@
         init();
     }
 
-})(); 
+})();
