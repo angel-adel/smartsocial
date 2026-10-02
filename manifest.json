@@ -1,4 +1,5 @@
 {
+    "id": "./",
     "name": "Smart Social",
     "short_name": "SmartSocial",
     "description": "Уютная социальная сеть с фиолетовой эстетикой",
@@ -6,9 +7,11 @@
     "start_url": "./index.html",
     "scope": "./",
     "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
     "orientation": "portrait",
     "theme_color": "#7c3aed",
-    "background_color": "#f5f0ff",
+    "background_color": "#0B0E14",
+    "categories": ["social", "communication"],
     "icons": [
         {
             "src": "./android-chrome-192x192.png",
