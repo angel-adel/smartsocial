@@ -205,7 +205,8 @@
             const list = document.getElementById('convList');
             list.innerHTML = users.map(u => {
                 const lastMsg = msgs.find(m => (m.sender_id === u.id && m.receiver_id === currentUser.id) || (m.sender_id === currentUser.id && m.receiver_id === u.id));
-                const preview = lastMsg.sender_id === currentUser.id ? `Вы: ${lastMsg.content}` : `${u.username}: ${lastMsg.content}`;
+                const lastMsgText = lastMsg.content || "📷 Медиа";
+                const preview = lastMsg.sender_id === currentUser.id ? `Вы: ${lastMsgText}` : `${u.username}: ${lastMsgText}`;
                 const avatarHtml = u.avatar_url ? `<img src="${u.avatar_url}">` : '';
                 return `<div class="conv-item" onclick="openChat('${u.id}')">
                     <div class="conv-avatar">${avatarHtml}</div>
@@ -230,19 +231,30 @@
             loadMessages();
         }
 
-        async function loadMessages() {
+                async function loadMessages() {
             if (!activePartnerId) return;
             const area = document.getElementById('messagesArea');
             const { data: msgs } = await supabaseClient.from('messages').select('*').or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activePartnerId}),and(sender_id.eq.${activePartnerId},receiver_id.eq.${currentUser.id})`).order('created_at', { ascending: true });
-            if (!msgs || msgs.length === 0) { area.innerHTML = '<div style="text-align:center; color:var(--text-secondary); margin-top:20px;" data-i18n="chat_start_first">Начните общение первым! 👋</div>'; return; }
-            area.innerHTML = msgs.map(m => {
+            
+            // ФИЛЬТР: Убираем медиа-сообщения, оставляем только текст
+            const textMessages = (msgs || []).filter(m => !m.media_url);
+
+            if (!textMessages || textMessages.length === 0) { 
+                area.innerHTML = '<div style="text-align:center; color:var(--text-secondary); margin-top:20px;" data-i18n="chat_start_first">Начните общение первым! 👋</div>'; 
+                return; 
+            }
+            
+            area.innerHTML = textMessages.map(m => {
                 const isMe = m.sender_id === currentUser.id;
                 const time = new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 const senderName = isMe ? 'Вы' : activePartnerName;
-                const safeContent = m.content.replace(/`/g, '\\`').replace(/\n/g, '\\n');
+                // ЗАЩИТА: Если content null, берем пустую строку
+                const contentText = m.content || ""; 
+                const safeContent = contentText.replace(/`/g, '\\`').replace(/\n/g, '\\n');
+                
                 return `<div class="message ${isMe ? 'me' : 'them'}">
                     <div class="msg-sender">${senderName}:</div>
-                    <div class="msg-text">${m.content}</div>
+                    <div class="msg-text">${contentText}</div>
                     <div class="msg-actions">
                         ${isMe ? `<button class="msg-edit-btn" onclick="editMessage('${m.id}', \`${safeContent}\`)">✏️</button><button class="msg-del-btn" onclick="deleteMessage('${m.id}')">🗑️</button>` : ''}
                         <span class="msg-time">${time} ${isMe && m.is_read ? '✓✓' : ''}</span>
