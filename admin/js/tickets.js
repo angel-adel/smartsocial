@@ -115,60 +115,55 @@ async function sendReply() {
         return;
     }
 
+    const ticket = allTickets.find(t => t.id === currentTicketId);
+    if (!ticket) return;
+
     try {
-        // 1. Обновляем тикет
+        // 1. Обновляем тикет в базе (меняем статус на "отвечен")
         await updateTicketStatus(currentTicketId, { 
             admin_answer: answer, 
             status: 'answered', 
             answered_at: new Date().toISOString() 
         });
 
-        // 2. Если галочка стоит - добавляем в БЗ
+        // 2. Добавляем в Базу Знаний (если стоит галочка)
         if (toKB) {
-            // Простой парсер ключевых слов (можно улучшить)
             const stopWords = ['как', 'что', 'где', 'когда', 'почему', 'зачем', 'можно', 'ли', 'нужно', 'и', 'в', 'на', 'с', 'по'];
-            const ticket = allTickets.find(t => t.id === currentTicketId);
-            if (ticket) {
-                const keywords = ticket.user_question.toLowerCase().replace(/[?!.,]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
-                await addKBEntry(keywords, answer);
+            const keywords = ticket.user_question.toLowerCase().replace(/[?!.,]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
+            await addKBEntry(keywords, answer);
+        }
+
+        // 3. ОТПРАВЛЯЕМ ПИСЬМО
+        let mailSent = false;
+        // Проверяем, что почта указана и это не вымышленный fakemail
+        if (ticket.user_email && !ticket.user_email.endsWith('@smartsocial.app') && !ticket.user_email.endsWith('@smartsocial.local')) {
+            try {
+                // Вызываем нашу Edge Function через официальный SDK Supabase
+                const { data, error } = await window.supabaseClient.functions.invoke('send-email', {
+                    body: {
+                        to: ticket.user_email,
+                        subject: 'Ответ поддержки SmartSocial',
+                        body: answer
+                    }
+                });
+
+                if (error) throw error;
+                mailSent = true;
+            } catch (e) {
+                console.warn('Письмо не ушло:', e);
+                // Не прерываем процесс, если письмо не ушло. Тикет всё равно сохранится.
             }
         }
 
         closeModal();
-        await loadTickets(); // Перезагружаем список
-        toast('Ответ сохранен');
+        await loadTickets(); // Перезагружаем таблицу тикетов
         
-        // Если нужно отправить email (через Edge Function)
-        // Это можно добавить позже, вызвав fetch к /functions/v1/send-email
+        let successMsg = 'Ответ сохранен';
+        if (mailSent) successMsg += ' + письмо отправлено';
+        
+        toast(successMsg);
         
     } catch (e) {
         toast('Ошибка: ' + e.message, true);
     }
-}
-
-// Закрытие/Открытие/Удаление
-async function closeTicket(id) {
-    if (!confirm('Закрыть тикет?')) return;
-    try {
-        await updateTicketStatus(id, { status: 'closed', closed_at: new Date().toISOString() });
-        await loadTickets();
-        toast('Тикет закрыт');
-    } catch (e) { toast('Ошибка: ' + e.message, true); }
-}
-
-async function reopenTicket(id) {
-    try {
-        await updateTicketStatus(id, { status: 'new', closed_at: null, answered_at: null });
-        await loadTickets();
-        toast('Тикет открыт заново');
-    } catch (e) { toast('Ошибка: ' + e.message, true); }
-}
-
-async function deleteTicket(id) {
-    if (!confirm('Удалить тикет навсегда?')) return;
-    try {
-        await deleteTicketById(id);
-        await loadTickets();
-        toast('Тикет удален');
-    } catch (e) { toast('Ошибка: ' + e.message, true); }
 }
