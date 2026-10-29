@@ -220,7 +220,7 @@
         resDiv.innerHTML = '<div style="text-align:center;padding:15px;color:#666">Отправляю...</div>';
 
         try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/angel_tickets`, {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/tickets`, {
                 method: 'POST',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
