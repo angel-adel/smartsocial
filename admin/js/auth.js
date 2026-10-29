@@ -6,14 +6,16 @@ async function doLogin() {
     const errEl = document.getElementById('loginError');
     
     errEl.textContent = 'Проверка...';
-    
+    errEl.style.color = '#888';
+
     if (!email || !password) {
         errEl.textContent = 'Введите email и пароль';
+        errEl.style.color = '#ff6b6b';
         return;
     }
 
     try {
-        // 1. Пытаемся войти через Supabase Auth
+        // 1. Вход в Auth
         const { data: authData, error: authError } = await window.supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
@@ -21,20 +23,23 @@ async function doLogin() {
 
         if (authError) throw authError;
 
-        // 2. СРАЗУ ПРОВЕРЯЕМ, ЕСТЬ ЛИ ОН В ТАБЛИЦЕ АДМИНОВ
+        // 2. ЖЕСТКАЯ ПРОВЕРКА: делаем запрос к admin_users
+        // Используем maybeSingle(), чтобы не было ошибки, если юзера нет
         const { data: adminData, error: adminError } = await window.supabaseClient
             .from('admin_users')
             .select('user_id')
             .eq('user_id', authData.user.id)
-            .maybeSingle(); // maybeSingle не выдает ошибку, если ничего не найдено
+            .maybeSingle();
 
-        // Если данных нет — значит это не админ. Выкидываем!
-        if (!adminData) {
-            await window.supabaseClient.auth.signOut(); // Стираем сессию
+        console.log('Результат проверки на админа:', adminData, adminError);
+
+        // 3. Если данных нет (или есть ошибка), значит это НЕ АДМИН
+        if (!adminData || adminError) {
+            await window.supabaseClient.auth.signOut(); // Принудительный выход
             throw new Error('Доступ запрещен. Вы не являетесь администратором.');
         }
 
-        // 3. Если всё ок — пускаем
+        // 4. Если всё ок — пускаем
         errEl.textContent = '';
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('adminApp').classList.add('active');
@@ -43,35 +48,6 @@ async function doLogin() {
 
     } catch (e) {
         errEl.textContent = 'Ошибка: ' + (e.message || 'Неверный логин или пароль');
+        errEl.style.color = '#ff6b6b';
     }
 }
-
-async function doLogout() {
-    await window.supabaseClient.auth.signOut();
-    document.getElementById('adminApp').classList.remove('active');
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('loginPassword').value = '';
-}
-
-// Проверка сессии при загрузке страницы
-window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
-        // Проверяем, админ ли он, прежде чем показывать интерфейс
-        const { data: adminData } = await window.supabaseClient
-            .from('admin_users')
-            .select('user_id')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-        if (adminData) {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('adminApp').classList.add('active');
-            if (typeof initApp === 'function') initApp();
-        } else {
-            await window.supabaseClient.auth.signOut();
-        }
-    } else if (event === 'SIGNED_OUT') {
-        document.getElementById('adminApp').classList.remove('active');
-        document.getElementById('loginScreen').style.display = 'flex';
-    }
-});
