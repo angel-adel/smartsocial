@@ -16,7 +16,7 @@ async function loadTickets() {
         renderTickets();
         updateStats();
     } catch (e) {
-        console.error(e);
+        console.error('Ошибка loadTickets:', e);
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:15px;color:#ff6b6b">Ошибка загрузки: ${e.message}</td></tr>`;
     }
 }
@@ -119,26 +119,24 @@ async function sendReply() {
     if (!ticket) return;
 
     try {
-        // 1. Обновляем тикет в базе (меняем статус на "отвечен")
+        console.log('Отправка ответа для тикета:', currentTicketId);
+        
         await updateTicketStatus(currentTicketId, { 
             admin_answer: answer, 
             status: 'answered', 
             answered_at: new Date().toISOString() 
         });
 
-        // 2. Добавляем в Базу Знаний (если стоит галочка)
         if (toKB) {
             const stopWords = ['как', 'что', 'где', 'когда', 'почему', 'зачем', 'можно', 'ли', 'нужно', 'и', 'в', 'на', 'с', 'по'];
             const keywords = ticket.user_question.toLowerCase().replace(/[?!.,]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
             await addKBEntry(keywords, answer);
         }
 
-        // 3. ОТПРАВЛЯЕМ ПИСЬМО
         let mailSent = false;
-        // Проверяем, что почта указана и это не вымышленный fakemail
         if (ticket.user_email && !ticket.user_email.endsWith('@smartsocial.app') && !ticket.user_email.endsWith('@smartsocial.local')) {
             try {
-                // Вызываем нашу Edge Function через официальный SDK Supabase
+                console.log('Попытка отправки письма на:', ticket.user_email);
                 const { data, error } = await window.supabaseClient.functions.invoke('send-email', {
                     body: {
                         to: ticket.user_email,
@@ -146,24 +144,61 @@ async function sendReply() {
                         body: answer
                     }
                 });
-
                 if (error) throw error;
                 mailSent = true;
+                console.log('Письмо отправлено успешно:', data);
             } catch (e) {
-                console.warn('Письмо не ушло:', e);
-                // Не прерываем процесс, если письмо не ушло. Тикет всё равно сохранится.
+                console.warn('Ошибка отправки письма:', e);
             }
         }
 
         closeModal();
-        await loadTickets(); // Перезагружаем таблицу тикетов
-        
-        let successMsg = 'Ответ сохранен';
-        if (mailSent) successMsg += ' + письмо отправлено';
-        
-        toast(successMsg);
+        await loadTickets();
+        toast('Ответ сохранен' + (mailSent ? ' + письмо отправлено' : ''));
         
     } catch (e) {
+        console.error('Ошибка sendReply:', e);
         toast('Ошибка: ' + e.message, true);
+    }
+}
+
+// Закрытие тикета
+async function closeTicket(id) {
+    console.log('Нажата кнопка Закрыть для:', id);
+    if (!confirm('Закрыть тикет?')) return;
+    try {
+        await updateTicketStatus(id, { status: 'closed', closed_at: new Date().toISOString() });
+        await loadTickets();
+        toast('Тикет закрыт');
+    } catch (e) { 
+        console.error('Ошибка closeTicket:', e);
+        toast('Ошибка: ' + e.message, true); 
+    }
+}
+
+// Открытие тикета заново
+async function reopenTicket(id) {
+    console.log('Нажата кнопка Открыть для:', id);
+    try {
+        await updateTicketStatus(id, { status: 'new', closed_at: null, answered_at: null });
+        await loadTickets();
+        toast('Тикет открыт заново');
+    } catch (e) { 
+        console.error('Ошибка reopenTicket:', e);
+        toast('Ошибка: ' + e.message, true); 
+    }
+}
+
+// Удаление тикета
+async function deleteTicket(id) {
+    console.log('Нажата кнопка Удалить для:', id);
+    if (!confirm('Удалить тикет навсегда?')) return;
+    try {
+        await deleteTicketById(id);
+        await loadTickets();
+        toast('Тикет удален');
+    } catch (e) { 
+        console.error('Ошибка deleteTicket:', e);
+        toast('Ошибка: ' + e.message, true); 
     }
 }
