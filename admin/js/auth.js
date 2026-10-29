@@ -50,4 +50,19 @@ async function doLogin() {
         errEl.textContent = 'Ошибка: ' + (e.message || 'Неверный логин или пароль');
         errEl.style.color = '#ff6b6b';
     }
+async function doLogout() {
+    try {
+        // 1. Принудительно чистим сессию в Supabase
+        await window.supabaseClient.auth.signOut();
+        
+        // 2. Чистим локальное хранилище (на всякий случай)
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // 3. Перезагружаем страницу, чтобы сбросить всё состояние
+        window.location.reload(); 
+    } catch (e) {
+        console.error('Ошибка выхода:', e);
+        window.location.reload(); // Всё равно перезагружаем
+    }
 }
