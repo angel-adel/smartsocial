@@ -1,4 +1,3 @@
-
 // admin/js/auth.js
 
 async function doLogin() {
@@ -6,7 +5,7 @@ async function doLogin() {
     const password = document.getElementById('loginPassword').value;
     const errEl = document.getElementById('loginError');
     
-    errEl.textContent = '';
+    errEl.textContent = 'Проверка...';
     
     if (!email || !password) {
         errEl.textContent = 'Введите email и пароль';
@@ -14,19 +13,32 @@ async function doLogin() {
     }
 
     try {
-        // Используем официальный метод Supabase для входа
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+        // 1. Пытаемся войти через Supabase Auth
+        const { data: authData, error: authError } = await window.supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
         });
 
-        if (error) throw error;
+        if (authError) throw authError;
 
-        // Если вход успешен, показываем админку
+        // 2. СРАЗУ ПРОВЕРЯЕМ, ЕСТЬ ЛИ ОН В ТАБЛИЦЕ АДМИНОВ
+        const { data: adminData, error: adminError } = await window.supabaseClient
+            .from('admin_users')
+            .select('user_id')
+            .eq('user_id', authData.user.id)
+            .maybeSingle(); // maybeSingle не выдает ошибку, если ничего не найдено
+
+        // Если данных нет — значит это не админ. Выкидываем!
+        if (!adminData) {
+            await window.supabaseClient.auth.signOut(); // Стираем сессию
+            throw new Error('Доступ запрещен. Вы не являетесь администратором.');
+        }
+
+        // 3. Если всё ок — пускаем
+        errEl.textContent = '';
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('adminApp').classList.add('active');
         
-        // Запускаем загрузку данных
         if (typeof initApp === 'function') initApp();
 
     } catch (e) {
@@ -41,11 +53,23 @@ async function doLogout() {
     document.getElementById('loginPassword').value = '';
 }
 
-// Проверка, вошел ли пользователь (при перезагрузке страницы)
-window.supabaseClient.auth.onAuthStateChange((event, session) => {
+// Проверка сессии при загрузке страницы
+window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('adminApp').classList.add('active');
+        // Проверяем, админ ли он, прежде чем показывать интерфейс
+        const { data: adminData } = await window.supabaseClient
+            .from('admin_users')
+            .select('user_id')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+        if (adminData) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminApp').classList.add('active');
+            if (typeof initApp === 'function') initApp();
+        } else {
+            await window.supabaseClient.auth.signOut();
+        }
     } else if (event === 'SIGNED_OUT') {
         document.getElementById('adminApp').classList.remove('active');
         document.getElementById('loginScreen').style.display = 'flex';
