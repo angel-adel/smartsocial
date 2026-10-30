@@ -308,10 +308,10 @@
                 <p>Войдите или создайте аккаунт. Если email не зарегистрирован, он создастся автоматически.</p>
             </div>
 
-            <form id="auth-form">
+            <form id="auth-form" method="POST" novalidate autocomplete="off">
     <div class="form-group">
         <label for="username">Имя пользователя</label>
-        <input type="text" id="username" placeholder="Ваше имя (латиницей): например Dmitry" required />
+        <input type="text" id="username" autocomplete="off" placeholder="Ваше имя (латиницей): например Dmitry" required />
         <small style="color:#888;font-size:11px;display:block;margin-top:4px">
             Имя будет использовано для вашей почты @smartsocial.local — только латиница (A-Z, a-z)
         </small>
@@ -319,7 +319,7 @@
 
     <div class="form-group">
         <label for="password">Пароль</label>
-        <input type="password" id="password" placeholder="Минимум 4 символа" required />
+        <input type="password" id="password" autocomplete="new-password" placeholder="Минимум 4 символа" required />
     </div>
 
     <div class="form-group">
