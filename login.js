@@ -82,39 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // ===== ПРОВЕРКА КАПЧИ =====
+           // ===== ПРОВЕРКА КАПЧИ =====
             if (!turnstileToken) {
                 log('❌ Подтвердите, что вы не робот (пройдите капчу)', 'error');
                 return;
             }
 
-            log('🛡️ Проверка капчи...');
-            try {
-                const captchaRes = await fetch(`${SUPABASE_URL}/functions/v1/verify-turnstile`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token: turnstileToken })
-                });
-
-                const captchaResult = await captchaRes.json();
-
-                if (!captchaResult.success) {
-                    log('❌ Капча не пройдена. Попробуйте ещё раз', 'error');
-                    if (typeof turnstile !== 'undefined') {
-                        turnstile.reset();
-                    }
-                    turnstileToken = null;
-                    return;
-                }
-
-                log('✅ Капча пройдена', 'success');
-            } catch (err) {
-                log('❌ Ошибка проверки капчи: ' + err.message, 'error');
-                return;
-            }
+            // (Блок проверки через Edge Function verify-turnstile УДАЛЕН, 
+            // так как он ломал вход. Cloudflare Turnstile уже проверен.)
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'Обработка...';
